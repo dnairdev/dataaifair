@@ -27,6 +27,8 @@ interface AppState {
   // AI Assistant
   aiAssistant: AIAssistant;
   suggestions: AISuggestion[];
+  activeProject: any | null;
+  codeGenerationHistory: any[];
   
   // Code exploration
   activeExploration: CodeExploration | null;
@@ -105,6 +107,8 @@ export const useStore = create<AppState>()(
         lastInteraction: new Date()
       },
       suggestions: [],
+      activeProject: null,
+      codeGenerationHistory: [],
       activeExploration: null,
       explorations: [],
       sidebarOpen: true,

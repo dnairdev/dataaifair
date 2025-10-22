@@ -7,6 +7,9 @@ import CodeEditor from './components/CodeEditor';
 import LearningPanel from './components/LearningPanel';
 import Header from './components/Header';
 import NotificationCenter from './components/NotificationCenter';
+import AIProjectBuilder from './components/AIProjectBuilder';
+import AIChat from './components/AIChat';
+import CodeGenerator from './components/CodeGenerator';
 import { generateLearningPrompts, analyzeCodebase } from './utils/aiHelpers';
 
 function App() {
@@ -70,6 +73,11 @@ function App() {
         
         {/* Notification Center */}
         <NotificationCenter />
+        
+        {/* AI Assistant Components */}
+        <AIProjectBuilder />
+        <AIChat />
+        <CodeGenerator />
         
         {/* Toast Notifications */}
         <Toaster 
