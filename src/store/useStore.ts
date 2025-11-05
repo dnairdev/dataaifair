@@ -37,8 +37,13 @@ interface AppState {
   // UI State
   sidebarOpen: boolean;
   learningPanelOpen: boolean;
+  projectBuilderOpen: boolean;
   settings: WorkspaceSettings;
   notifications: Notification[];
+  
+  // User onboarding
+  userUseCase: string | null;
+  hasCompletedOnboarding: boolean;
   
   // Actions
   setActiveFile: (fileId: string) => void;
@@ -64,6 +69,11 @@ interface AppState {
   
   toggleSidebar: () => void;
   toggleLearningPanel: () => void;
+  toggleProjectBuilder: () => void;
+  setCustomProject: (project: any) => void;
+  setUserUseCase: (useCase: string) => void;
+  completeOnboarding: () => void;
+  resetOnboarding: () => void;
 }
 
 const initialUserProgress: UserProgress = {
@@ -113,20 +123,39 @@ export const useStore = create<AppState>()(
       explorations: [],
       sidebarOpen: true,
       learningPanelOpen: false,
+      projectBuilderOpen: false,
       settings: initialSettings,
       notifications: [],
+      userUseCase: null,
+      hasCompletedOnboarding: false,
 
       // File actions
       setActiveFile: (fileId: string) => {
+        const state = get();
+        // Only update if it's a different file
+        if (state.activeFileId === fileId) return;
+        
         set({ activeFileId: fileId });
-        // Update file as explored
-        const { userProgress } = get();
-        set({
-          userProgress: {
-            ...userProgress,
-            totalFilesExplored: userProgress.totalFilesExplored + 1
-          }
-        });
+        
+        // Update file as explored and increase codebase familiarity
+        const { userProgress, files } = get();
+        const file = files.find(f => f.id === fileId);
+        
+        // Only increment if this is a new file exploration
+        if (file) {
+          const newTotalFiles = userProgress.totalFilesExplored + 1;
+          // Increase codebase familiarity when exploring files (small increment)
+          const familiarityIncrease = 1;
+          const newFamiliarity = Math.min(100, userProgress.codebaseFamiliarityScore + familiarityIncrease);
+          
+          set({
+            userProgress: {
+              ...userProgress,
+              totalFilesExplored: newTotalFiles,
+              codebaseFamiliarityScore: newFamiliarity
+            }
+          });
+        }
       },
 
       updateFileContent: (fileId: string, content: string) => {
@@ -145,10 +174,20 @@ export const useStore = create<AppState>()(
           id: crypto.randomUUID(),
           lastModified: new Date()
         };
-        set(state => ({
-          files: [...state.files, newFile],
-          activeFileId: newFile.id
-        }));
+        set(state => {
+          const { userProgress } = state;
+          // Small progress increase for creating files
+          const newFamiliarity = Math.min(100, userProgress.codebaseFamiliarityScore + 1);
+          
+          return {
+            files: [...state.files, newFile],
+            activeFileId: newFile.id,
+            userProgress: {
+              ...userProgress,
+              codebaseFamiliarityScore: newFamiliarity
+            }
+          };
+        });
       },
 
       deleteFile: (fileId: string) => {
@@ -182,15 +221,48 @@ export const useStore = create<AppState>()(
           const completedSession = updatedSessions.find(s => s.id === sessionId);
           const { userProgress } = state;
           
+          const newTotalSessions = userProgress.totalLearningSessions + 1;
+          const newAverageScore = userProgress.totalLearningSessions > 0
+            ? (userProgress.averageSessionScore * userProgress.totalLearningSessions + score) / newTotalSessions
+            : score;
+          
+          // Update critical thinking score (based on session completion and score)
+          const criticalThinkingIncrease = Math.min(5, Math.floor(score / 20));
+          const newCriticalThinking = Math.min(100, userProgress.criticalThinkingScore + criticalThinkingIncrease);
+          
+          // Update codebase familiarity (based on learning sessions)
+          const familiarityIncrease = Math.min(3, Math.floor(score / 30));
+          const newFamiliarity = Math.min(100, userProgress.codebaseFamiliarityScore + familiarityIncrease);
+          
+          // Update streak (check if last active was yesterday or today)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const lastActive = new Date(userProgress.lastActiveDate);
+          lastActive.setHours(0, 0, 0, 0);
+          const daysDiff = Math.floor((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
+          
+          let newStreak = userProgress.streak;
+          if (daysDiff === 0) {
+            // Same day, keep streak
+          } else if (daysDiff === 1) {
+            // Consecutive day, increment streak
+            newStreak = userProgress.streak + 1;
+          } else {
+            // Streak broken, reset to 1
+            newStreak = 1;
+          }
+          
           return {
             learningSessions: updatedSessions,
             currentSession: null,
             userProgress: {
               ...userProgress,
-              totalLearningSessions: userProgress.totalLearningSessions + 1,
-              averageSessionScore: userProgress.totalLearningSessions > 0
-                ? (userProgress.averageSessionScore * userProgress.totalLearningSessions + score) / (userProgress.totalLearningSessions + 1)
-                : score
+              totalLearningSessions: newTotalSessions,
+              averageSessionScore: newAverageScore,
+              criticalThinkingScore: newCriticalThinking,
+              codebaseFamiliarityScore: newFamiliarity,
+              streak: newStreak,
+              lastActiveDate: new Date()
             }
           };
         });
@@ -255,14 +327,27 @@ export const useStore = create<AppState>()(
       },
 
       completeCodeExploration: (explorationId: string, insights: string[]) => {
-        set(state => ({
-          activeExploration: null,
-          explorations: state.explorations.map(exploration =>
-            exploration.id === explorationId
-              ? { ...exploration, completed: true, insights }
-              : exploration
-          )
-        }));
+        set(state => {
+          const { userProgress } = state;
+          
+          // Increase critical thinking and codebase familiarity when completing exploration
+          const criticalThinkingIncrease = Math.min(3, insights.length);
+          const familiarityIncrease = Math.min(2, 1);
+          
+          return {
+            activeExploration: null,
+            explorations: state.explorations.map(exploration =>
+              exploration.id === explorationId
+                ? { ...exploration, completed: true, insights }
+                : exploration
+            ),
+            userProgress: {
+              ...userProgress,
+              criticalThinkingScore: Math.min(100, userProgress.criticalThinkingScore + criticalThinkingIncrease),
+              codebaseFamiliarityScore: Math.min(100, userProgress.codebaseFamiliarityScore + familiarityIncrease)
+            }
+          };
+        });
       },
 
       // Settings and UI
@@ -299,6 +384,29 @@ export const useStore = create<AppState>()(
 
       toggleLearningPanel: () => {
         set(state => ({ learningPanelOpen: !state.learningPanelOpen }));
+      },
+
+      toggleProjectBuilder: () => {
+        set(state => ({ projectBuilderOpen: !state.projectBuilderOpen }));
+      },
+
+      setCustomProject: (project) => {
+        set(state => ({ 
+          activeProject: project,
+          projectBuilderOpen: true 
+        }));
+      },
+
+      setUserUseCase: (useCase: string) => {
+        set({ userUseCase: useCase });
+      },
+
+      completeOnboarding: () => {
+        set({ hasCompletedOnboarding: true });
+      },
+
+      resetOnboarding: () => {
+        set({ hasCompletedOnboarding: false, userUseCase: null });
       }
     }),
     {
@@ -309,7 +417,9 @@ export const useStore = create<AppState>()(
         userProgress: state.userProgress,
         codebaseInsights: state.codebaseInsights,
         explorations: state.explorations,
-        settings: state.settings
+        settings: state.settings,
+        userUseCase: state.userUseCase,
+        hasCompletedOnboarding: state.hasCompletedOnboarding
       })
     }
   )

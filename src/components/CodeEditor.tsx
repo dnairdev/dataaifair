@@ -7,13 +7,18 @@ import {
   Target, 
   BookOpen,
   AlertCircle,
-  CheckCircle,
-  Info
+  Info,
+  Brain,
+  X,
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { AISuggestion } from '../types';
 import CodeExplorationModal from './CodeExplorationModal';
 import LearningPrompt from './LearningPrompt';
+import { explainCode } from '../utils/aiHelpers';
+import { toast } from 'react-hot-toast';
 
 const CodeEditor: React.FC = () => {
   const { 
@@ -21,16 +26,21 @@ const CodeEditor: React.FC = () => {
     activeFileId, 
     updateFileContent, 
     suggestions,
-    activeExploration,
     settings,
     addAISuggestion,
-    dismissSuggestion
+    dismissSuggestion,
+    toggleProjectBuilder,
+    userUseCase,
+    userProgress
   } = useStore();
 
   const [showExploration, setShowExploration] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState<AISuggestion | null>(null);
   const [editorValue, setEditorValue] = useState('');
   const editorRef = useRef<any>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [explanation, setExplanation] = useState<{ overview: string; lineByLine: Array<{ lineNumber: number; code: string; explanation: string }> } | null>(null);
+  const [isExplaining, setIsExplaining] = useState(false);
 
   const activeFile = files.find(f => f.id === activeFileId);
 
@@ -47,29 +57,31 @@ const CodeEditor: React.FC = () => {
     }
   };
 
-  const handleEditorMount = (editor: any) => {
+  const handleEditorMount = (editor: any, monaco: any) => {
     editorRef.current = editor;
     
     // Add custom keybindings for learning features
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
-      // Start learning session
-      console.log('Start learning session');
-    });
+    if (monaco) {
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
+        // Start learning session
+        console.log('Start learning session');
+      });
 
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyE, () => {
-      // Start code exploration
-      if (activeFileId) {
-        setShowExploration(true);
-      }
-    });
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyE, () => {
+        // Start code exploration
+        if (activeFileId) {
+          setShowExploration(true);
+        }
+      });
 
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => {
-      // Show hints
-      const fileSuggestions = suggestions.filter(s => s.fileId === activeFileId);
-      if (fileSuggestions.length > 0) {
-        setSelectedSuggestion(fileSuggestions[0]);
-      }
-    });
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => {
+        // Show hints
+        const fileSuggestions = suggestions.filter(s => s.fileId === activeFileId);
+        if (fileSuggestions.length > 0) {
+          setSelectedSuggestion(fileSuggestions[0]);
+        }
+      });
+    }
   };
 
   const getFileSuggestions = () => {
@@ -105,26 +117,139 @@ const CodeEditor: React.FC = () => {
     }
   };
 
+  const handleExplainCode = async () => {
+    if (!activeFile) return;
+
+    setIsExplaining(true);
+    setShowExplanation(true);
+    
+    try {
+      const codeExplanation = await explainCode(
+        activeFile.content,
+        activeFile.language,
+        activeFile.name
+      );
+      setExplanation(codeExplanation);
+      
+      // Update progress when explaining code (increases critical thinking)
+      const currentProgress = userProgress;
+      const newCriticalThinking = Math.min(100, currentProgress.criticalThinkingScore + 2);
+      const newFamiliarity = Math.min(100, currentProgress.codebaseFamiliarityScore + 1);
+      
+      // Update progress in store
+      useStore.setState({
+        userProgress: {
+          ...currentProgress,
+          criticalThinkingScore: newCriticalThinking,
+          codebaseFamiliarityScore: newFamiliarity
+        }
+      });
+      
+      // Add as a learning suggestion
+      addAISuggestion({
+        type: 'explanation',
+        content: `Line-by-line code explanation generated for ${activeFile.name}`,
+        fileId: activeFile.id,
+        priority: 'medium',
+        requiresUserAction: false,
+        dismissed: false
+      });
+
+      toast.success('Line-by-line explanation generated!');
+    } catch (error) {
+      console.error('Error explaining code:', error);
+      toast.error('Failed to generate explanation');
+      setExplanation(null);
+    } finally {
+      setIsExplaining(false);
+    }
+  };
+
   if (!activeFile) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No file selected
+      <div className="flex-1 flex items-center justify-center bg-white">
+        <div className="text-center max-w-md px-6">
+          <div className="w-24 h-24 flex items-center justify-center mx-auto mb-6 text-7xl">
+            🥥
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+            Welcome to Cocode{userUseCase ? '!' : ''}
           </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            Create a new file or open an existing one to start coding
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            {userUseCase ? (
+              <>
+                We've personalized your experience based on your goals. 
+                Let's start building something amazing!
+              </>
+            ) : (
+              <>
+                An AI-assisted IDE that teaches you to code by building projects. 
+                Learn concepts, not just copy code.
+              </>
+            )}
           </p>
+          <div className="space-y-3">
+            <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg text-left border border-gray-100">
+              <Sparkles className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-gray-900 mb-1">Build Any Product</div>
+                <div className="text-sm text-gray-600">
+                  Describe what you want to build, and we'll create a step-by-step learning plan
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg text-left border border-gray-100">
+              <Brain className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-gray-900 mb-1">Learn by Doing</div>
+                <div className="text-sm text-gray-600">
+                  Each step includes explanations so you understand the "why" behind the code
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg text-left border border-gray-100">
+              <Target className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-gray-900 mb-1">Track Progress</div>
+                <div className="text-sm text-gray-600">
+                  Build critical thinking skills while staying familiar with your codebase
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-8">
+            <p className="text-sm text-gray-500 mb-4">
+              Get started by:
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => {
+                  // This will be handled by Sidebar component
+                  window.dispatchEvent(new CustomEvent('openCreateFileModal'));
+                }}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm"
+              >
+                Create a File
+              </button>
+              <button
+                onClick={() => {
+                  toggleProjectBuilder();
+                }}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
+              >
+                Start Building
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
+    <div className="flex-1 flex flex-col bg-white dark:bg-gray-950">
       {/* Editor Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-900 bg-white dark:bg-gray-950">
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -151,24 +276,44 @@ const CodeEditor: React.FC = () => {
             </div>
           )}
 
+          {/* Explain Code Button */}
+          <button
+            onClick={handleExplainCode}
+            disabled={isExplaining || !activeFile}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Explain this code automatically"
+          >
+            {isExplaining ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Explaining...</span>
+              </>
+            ) : (
+              <>
+                <Brain className="w-4 h-4" />
+                <span>Explain Code</span>
+              </>
+            )}
+          </button>
+
           {/* Quick Actions */}
           <button
             onClick={() => setShowExploration(true)}
-            className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title="Start Code Exploration (Ctrl+E)"
           >
             <Target className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           </button>
 
           <button
-            className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title="Run Code (Ctrl+R)"
           >
             <Play className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           </button>
 
           <button
-            className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title="Debug (Ctrl+D)"
           >
             <Bug className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -194,7 +339,7 @@ const CodeEditor: React.FC = () => {
               lineNumbers: 'on',
               rulers: [80, 120],
               cursorBlinking: 'blink',
-              cursorSmoothCaretAnimation: true,
+              cursorSmoothCaretAnimation: 'on',
               smoothScrolling: true,
               contextmenu: true,
               mouseWheelZoom: true,
@@ -202,7 +347,7 @@ const CodeEditor: React.FC = () => {
               suggestOnTriggerCharacters: true,
               acceptSuggestionOnEnter: 'on',
               tabCompletion: 'on',
-              wordBasedSuggestions: 'matchingDocuments',
+              wordBasedSuggestions: true,
               parameterHints: { enabled: true },
               hover: { enabled: true },
               folding: true,
@@ -321,8 +466,120 @@ const CodeEditor: React.FC = () => {
           onClose={() => setSelectedSuggestion(null)}
         />
       )}
+
+      {/* Code Explanation Modal */}
+      {showExplanation && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-900">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary-100 dark:bg-primary-950 rounded-lg">
+                  <Brain className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Code Explanation
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {activeFile?.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowExplanation(false);
+                  setExplanation(null);
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              {isExplaining ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <Loader2 className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">Analyzing your code line by line...</p>
+                  </div>
+                </div>
+              ) : explanation ? (
+                <div className="space-y-6">
+                  {/* Overview */}
+                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-900">
+                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">Overview</h3>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">{explanation.overview}</p>
+                  </div>
+
+                  {/* Line by Line */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Line-by-Line Explanation</h3>
+                    <div className="space-y-3">
+                      {explanation.lineByLine.map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors border border-gray-100 dark:border-gray-800"
+                        >
+                          <div className="flex-shrink-0 w-12 text-right">
+                            <span className="text-xs font-mono text-gray-500 dark:text-gray-400">{item.lineNumber}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <code className="block text-sm font-mono text-gray-900 dark:text-gray-100 mb-1 whitespace-pre-wrap break-words">
+                              {item.code || '\u00A0'}
+                            </code>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {item.explanation}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="p-6 border-t border-gray-100 dark:border-gray-900">
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowExplanation(false);
+                    setExplanation(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+                {explanation && (
+                  <button
+                    onClick={() => {
+                      if (activeFile) {
+                        const explanationText = `Line-by-line explanation for ${activeFile.name}:\n\n${explanation.overview}\n\n${explanation.lineByLine.map(item => `Line ${item.lineNumber}: ${item.explanation}`).join('\n')}`;
+                        addAISuggestion({
+                          type: 'explanation',
+                          content: explanationText,
+                          fileId: activeFile.id,
+                          priority: 'medium',
+                          requiresUserAction: false,
+                          dismissed: false
+                        });
+                        toast.success('Explanation saved to learning suggestions!');
+                      }
+                    }}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    Save to Learning
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default CodeEditor;
+

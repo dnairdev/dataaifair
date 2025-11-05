@@ -1,18 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  FileText, 
   Plus, 
   Folder, 
-  Search, 
-  GitBranch, 
-  Settings,
-  BookOpen,
   Target,
-  Lightbulb,
-  Zap,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  X
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useStore } from '../store/useStore';
 import { CodeFile } from '../types';
 
@@ -29,10 +24,22 @@ const Sidebar: React.FC = () => {
   } = useStore();
 
   const [expandedSections, setExpandedSections] = useState({
-    files: true,
-    learning: true,
-    insights: true
+    files: true
   });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('typescript');
+
+  // Listen for open create file modal event
+  useEffect(() => {
+    const handleOpenModal = () => {
+      setShowCreateModal(true);
+    };
+    window.addEventListener('openCreateFileModal', handleOpenModal);
+    return () => {
+      window.removeEventListener('openCreateFileModal', handleOpenModal);
+    };
+  }, []);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
@@ -41,19 +48,119 @@ const Sidebar: React.FC = () => {
     }));
   };
 
+  const getLanguageFromExtension = (fileName: string): string => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    const languageMap: Record<string, string> = {
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'css': 'css',
+      'html': 'html',
+      'json': 'json',
+      'md': 'markdown',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c',
+      'go': 'go',
+      'rs': 'rust',
+      'php': 'php',
+      'rb': 'ruby',
+      'swift': 'swift',
+      'kt': 'kotlin'
+    };
+    return languageMap[ext || ''] || 'typescript';
+  };
+
+  const getDefaultExtension = (language: string): string => {
+    const extensionMap: Record<string, string> = {
+      'typescript': '.tsx',
+      'javascript': '.jsx',
+      'css': '.css',
+      'html': '.html',
+      'json': '.json',
+      'markdown': '.md',
+      'python': '.py',
+      'java': '.java',
+      'cpp': '.cpp',
+      'c': '.c',
+      'go': '.go',
+      'rust': '.rs',
+      'php': '.php',
+      'ruby': '.rb',
+      'swift': '.swift',
+      'kotlin': '.kt'
+    };
+    return extensionMap[language] || '.tsx';
+  };
+
   const handleCreateFile = () => {
-    const fileName = prompt('Enter file name:');
-    if (fileName) {
-      const extension = fileName.includes('.') ? '' : '.tsx';
-      createFile({
-        name: fileName + extension,
-        content: '',
-        language: 'typescript',
-        path: '/',
-        isOpen: true,
-        isDirty: false
-      });
+    if (!newFileName.trim()) {
+      return;
     }
+
+    // Ensure file has extension
+    let fileName = newFileName.trim();
+    if (!fileName.includes('.')) {
+      fileName = fileName + getDefaultExtension(selectedLanguage);
+    }
+
+    // Check if file already exists
+    const fileExists = files.some(f => f.name === fileName);
+    if (fileExists) {
+      toast.error(`File "${fileName}" already exists. Please choose a different name.`);
+      return;
+    }
+
+    const language = getLanguageFromExtension(fileName);
+
+    // Get default content based on file type
+    let defaultContent = '';
+    if (fileName.endsWith('.tsx') || fileName.endsWith('.jsx')) {
+      defaultContent = `import React from 'react';
+
+export default function ${fileName.split('.')[0].replace(/[^a-zA-Z0-9]/g, '')}() {
+  return (
+    <div>
+      <h1>${fileName.split('.')[0]}</h1>
+    </div>
+  );
+}`;
+    } else if (fileName.endsWith('.ts')) {
+      defaultContent = `// ${fileName}\n\nexport default {};`;
+    } else if (fileName.endsWith('.css')) {
+      defaultContent = `/* ${fileName} */\n\n`;
+    } else if (fileName.endsWith('.html')) {
+      defaultContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${fileName}</title>
+</head>
+<body>
+  <h1>${fileName}</h1>
+</body>
+</html>`;
+    } else if (fileName.endsWith('.json')) {
+      defaultContent = `{\n  \n}`;
+    }
+
+    createFile({
+      name: fileName,
+      content: defaultContent,
+      language: language,
+      path: '/',
+      isOpen: true,
+      isDirty: false
+    });
+
+    // Reset form and close modal
+    setNewFileName('');
+    setSelectedLanguage('typescript');
+    setShowCreateModal(false);
+    toast.success(`File "${fileName}" created successfully!`);
   };
 
   const handleFileClick = (file: CodeFile) => {
@@ -89,16 +196,16 @@ const Sidebar: React.FC = () => {
   if (!sidebarOpen) return null;
 
   return (
-    <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+    <div className="w-72 bg-white border-r border-gray-100 flex flex-col">
       {/* File Explorer */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
             Explorer
           </h2>
           <button
-            onClick={handleCreateFile}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            onClick={() => setShowCreateModal(true)}
+            className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
             title="Create new file"
           >
             <Plus className="w-4 h-4" />
@@ -106,10 +213,10 @@ const Sidebar: React.FC = () => {
         </div>
 
         {/* Files Section */}
-        <div className="space-y-1">
+        <div className="space-y-2">
           <button
             onClick={() => toggleSection('files')}
-            className="flex items-center space-x-2 w-full text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            className="flex items-center space-x-2 w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
           >
             {expandedSections.files ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             <Folder className="w-4 h-4" />
@@ -117,14 +224,14 @@ const Sidebar: React.FC = () => {
           </button>
           
           {expandedSections.files && (
-            <div className="ml-6 space-y-1">
+            <div className="ml-6 space-y-1 mt-2">
               {files.map(file => (
                 <div
                   key={file.id}
-                  className={`group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                  className={`group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all ${
                     activeFileId === file.id
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                      ? 'bg-gray-900 text-white border border-gray-900'
+                      : 'hover:bg-gray-50 border border-transparent'
                   }`}
                   onClick={() => handleFileClick(file)}
                 >
@@ -140,7 +247,7 @@ const Sidebar: React.FC = () => {
                         e.stopPropagation();
                         handleStartExploration(file);
                       }}
-                      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                      className="p-1 rounded hover:bg-gray-200"
                       title="Start code exploration"
                     >
                       <Target className="w-3 h-3" />
@@ -150,7 +257,7 @@ const Sidebar: React.FC = () => {
                         e.stopPropagation();
                         deleteFile(file.id);
                       }}
-                      className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400"
+                      className="p-1 rounded hover:bg-red-100 text-red-600"
                       title="Delete file"
                     >
                       ×
@@ -160,7 +267,7 @@ const Sidebar: React.FC = () => {
               ))}
               
               {files.length === 0 && (
-                <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+                <div className="text-sm text-gray-500 italic py-4 text-center">
                   No files yet. Create one to get started!
                 </div>
               )}
@@ -169,95 +276,129 @@ const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Learning Progress */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => toggleSection('learning')}
-          className="flex items-center space-x-2 w-full text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-        >
-          {expandedSections.learning ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          <BookOpen className="w-4 h-4" />
-          <span>Learning Progress</span>
-        </button>
-        
-        {expandedSections.learning && (
-          <div className="ml-6 mt-3 space-y-3">
-            {/* Critical Thinking Score */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Critical Thinking</span>
-                <span className="font-medium">{userProgress.criticalThinkingScore}/100</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${userProgress.criticalThinkingScore}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Codebase Familiarity */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Codebase Familiarity</span>
-                <span className="font-medium">{userProgress.codebaseFamiliarityScore}%</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${userProgress.codebaseFamiliarityScore}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Learning Streak */}
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-2">
-                <Zap className="w-4 h-4 text-yellow-500" />
-                <span className="text-gray-600 dark:text-gray-400">Learning Streak</span>
-              </div>
-              <span className="font-medium text-yellow-600">{userProgress.streak} days</span>
-            </div>
-
-            {/* Recent Achievements */}
-            {userProgress.achievements.length > 0 && (
-              <div className="space-y-1">
-                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Recent Achievements</div>
-                <div className="space-y-1">
-                  {userProgress.achievements.slice(0, 3).map(achievement => (
-                    <div key={achievement.id} className="flex items-center space-x-2 text-xs">
-                      <span className="text-yellow-500">🏆</span>
-                      <span className="text-gray-600 dark:text-gray-400 truncate">
-                        {achievement.title}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+      {/* Quick Stats */}
+      <div className="p-6 border-t border-gray-100">
+        <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
+          Quick Stats
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="text-xs text-gray-500 mb-1">Files</div>
+            <div className="text-lg font-bold text-gray-900">{userProgress.totalFilesExplored}</div>
           </div>
-        )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="p-4">
-        <div className="space-y-2">
-          <button className="w-full flex items-center space-x-2 p-2 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors">
-            <Lightbulb className="w-4 h-4" />
-            <span className="text-sm font-medium">Start Learning Session</span>
-          </button>
-          
-          <button className="w-full flex items-center space-x-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-            <Search className="w-4 h-4" />
-            <span className="text-sm font-medium">Explore Codebase</span>
-          </button>
-          
-          <button className="w-full flex items-center space-x-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-            <GitBranch className="w-4 h-4" />
-            <span className="text-sm font-medium">Code Review</span>
-          </button>
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="text-xs text-gray-500 mb-1">Sessions</div>
+            <div className="text-lg font-bold text-gray-900">{userProgress.totalLearningSessions}</div>
+          </div>
         </div>
       </div>
+
+      {/* Create File Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Create New File
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setNewFileName('');
+                    setSelectedLanguage('typescript');
+                  }}
+                  className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    File Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newFileName}
+                    onChange={(e) => setNewFileName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCreateFile();
+                      } else if (e.key === 'Escape') {
+                        setShowCreateModal(false);
+                      }
+                    }}
+                    placeholder="e.g., App.tsx, utils.ts, styles.css"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    autoFocus
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Include extension or select language below
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Language / Type
+                  </label>
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => {
+                      setSelectedLanguage(e.target.value);
+                      // Auto-add extension if filename doesn't have one
+                      if (newFileName && !newFileName.includes('.')) {
+                        const ext = getDefaultExtension(e.target.value);
+                        const nameWithoutExt = newFileName.replace(/\.\w+$/, '');
+                        setNewFileName(nameWithoutExt + ext);
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  >
+                    <option value="typescript">TypeScript (.ts, .tsx)</option>
+                    <option value="javascript">JavaScript (.js, .jsx)</option>
+                    <option value="css">CSS (.css)</option>
+                    <option value="html">HTML (.html)</option>
+                    <option value="json">JSON (.json)</option>
+                    <option value="markdown">Markdown (.md)</option>
+                    <option value="python">Python (.py)</option>
+                    <option value="java">Java (.java)</option>
+                    <option value="cpp">C++ (.cpp)</option>
+                    <option value="c">C (.c)</option>
+                    <option value="go">Go (.go)</option>
+                    <option value="rust">Rust (.rs)</option>
+                    <option value="php">PHP (.php)</option>
+                    <option value="ruby">Ruby (.rb)</option>
+                    <option value="swift">Swift (.swift)</option>
+                    <option value="kotlin">Kotlin (.kt)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setNewFileName('');
+                    setSelectedLanguage('typescript');
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateFile}
+                  disabled={!newFileName.trim()}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Create File
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

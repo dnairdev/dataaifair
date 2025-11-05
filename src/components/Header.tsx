@@ -2,12 +2,11 @@ import React from 'react';
 import { 
   Brain, 
   Lightbulb, 
-  Target, 
-  Trophy, 
-  Settings, 
   Menu,
   Zap,
-  BookOpen
+  BookOpen,
+  Target,
+  Sparkles
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
@@ -17,9 +16,9 @@ const Header: React.FC = () => {
     toggleSidebar, 
     toggleLearningPanel,
     learningPanelOpen,
-    sidebarOpen,
-    settings,
-    updateSettings
+    toggleProjectBuilder,
+    projectBuilderOpen,
+    resetOnboarding
   } = useStore();
 
   const getCriticalThinkingLevel = (score: number) => {
@@ -33,120 +32,100 @@ const Header: React.FC = () => {
   const ThinkingIcon = thinkingLevel.icon;
 
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-      <div className="flex items-center justify-between">
-        {/* Left side - Menu and title */}
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={toggleSidebar}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
-              <Brain className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              DataAIFair IDE
-            </h1>
-          </div>
-        </div>
-
-        {/* Center - Progress indicators */}
-        <div className="flex items-center space-x-6">
-          {/* Critical Thinking Score */}
-          <div className="flex items-center space-x-2">
-            <ThinkingIcon className={`w-5 h-5 ${thinkingLevel.color}`} />
-            <div className="text-sm">
-              <div className="font-medium text-gray-900 dark:text-white">
-                {thinkingLevel.level}
-              </div>
-              <div className="text-gray-500 dark:text-gray-400">
-                {userProgress.criticalThinkingScore}/100
-              </div>
-            </div>
-          </div>
-
-          {/* Codebase Familiarity */}
-          <div className="flex items-center space-x-2">
-            <Target className="w-5 h-5 text-blue-600" />
-            <div className="text-sm">
-              <div className="font-medium text-gray-900 dark:text-white">
-                Familiarity
-              </div>
-              <div className="text-gray-500 dark:text-gray-400">
-                {userProgress.codebaseFamiliarityScore}%
-              </div>
-            </div>
-          </div>
-
-          {/* Learning Streak */}
-          <div className="flex items-center space-x-2">
-            <Zap className="w-5 h-5 text-yellow-500" />
-            <div className="text-sm">
-              <div className="font-medium text-gray-900 dark:text-white">
-                Streak
-              </div>
-              <div className="text-gray-500 dark:text-gray-400">
-                {userProgress.streak} days
-              </div>
-            </div>
-          </div>
-
-          {/* Achievements */}
-          <div className="flex items-center space-x-2">
-            <Trophy className="w-5 h-5 text-yellow-600" />
-            <div className="text-sm">
-              <div className="font-medium text-gray-900 dark:text-white">
-                Achievements
-              </div>
-              <div className="text-gray-500 dark:text-gray-400">
-                {userProgress.achievements.length}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right side - Actions */}
-        <div className="flex items-center space-x-2">
-          {/* Learning Panel Toggle */}
-          <button
-            onClick={toggleLearningPanel}
-            className={`p-2 rounded-lg transition-colors ${
-              learningPanelOpen 
-                ? 'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400' 
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-            }`}
-            title="Toggle Learning Panel"
-          >
-            <BookOpen className="w-5 h-5" />
-          </button>
-
-          {/* AI Assistance Level */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">AI:</span>
-            <select
-              value={settings.aiAssistanceLevel}
-              onChange={(e) => updateSettings({ 
-                aiAssistanceLevel: e.target.value as 'minimal' | 'moderate' | 'full' 
-              })}
-              className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+    <header className="bg-white border-b border-gray-100">
+      <div className="px-8 py-4">
+        <div className="flex items-center justify-between">
+          {/* Left side - Logo and Purpose */}
+          <div className="flex items-center space-x-6">
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-600"
             >
-              <option value="minimal">Minimal</option>
-              <option value="moderate">Moderate</option>
-              <option value="full">Full</option>
-            </select>
+              <Menu className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center space-x-3">
+              <div className="relative w-10 h-10 flex items-center justify-center text-3xl">
+                🥥
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900 tracking-tight">
+                  Cocode
+                </h1>
+                <p className="text-xs text-gray-500 -mt-0.5 font-normal">
+                  Learn by building, not copying
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Settings */}
-          <button
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            title="Settings"
-          >
-            <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </button>
+          {/* Center - Quick Stats (simplified) */}
+          <div className="hidden lg:flex items-center space-x-4">
+            <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-50">
+              <ThinkingIcon className={`w-4 h-4 ${thinkingLevel.color}`} />
+              <span className="text-sm font-medium text-gray-900">
+                {userProgress.criticalThinkingScore}
+              </span>
+            </div>
+            {userProgress.streak > 0 && (
+              <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-50">
+                <Zap className="w-4 h-4 text-amber-500" />
+                <span className="text-sm font-medium text-gray-900">
+                  {userProgress.streak}d streak
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Right side - Primary Actions */}
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => {
+                if (confirm('Reset onboarding to see the landing page again?')) {
+                  resetOnboarding();
+                  window.location.reload();
+                }
+              }}
+              className="px-3 py-1.5 rounded-lg transition-all font-medium text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+              title="Reset Onboarding (Shows Landing Page)"
+            >
+              🔄
+            </button>
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('toggleAbout'));
+              }}
+              className="px-4 py-2 rounded-lg transition-all font-medium text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+              title="About Cocode"
+            >
+              <span className="hidden sm:inline">About</span>
+              <span className="sm:hidden"><BookOpen className="w-4 h-4" /></span>
+            </button>
+            <button
+              onClick={toggleProjectBuilder}
+              className={`px-4 py-2 rounded-lg transition-all font-medium text-sm ${
+                projectBuilderOpen 
+                  ? 'bg-gray-900 text-white' 
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+              title="Build Projects"
+            >
+              <span className="hidden sm:inline">Build</span>
+              <span className="sm:hidden"><Sparkles className="w-4 h-4" /></span>
+            </button>
+            <button
+              onClick={toggleLearningPanel}
+              className={`px-4 py-2 rounded-lg transition-all font-medium text-sm ${
+                learningPanelOpen 
+                  ? 'bg-gray-900 text-white' 
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+              title="View Progress"
+            >
+              <span className="hidden sm:inline">Progress</span>
+              <span className="sm:hidden"><Target className="w-4 h-4" /></span>
+            </button>
+          </div>
         </div>
       </div>
     </header>

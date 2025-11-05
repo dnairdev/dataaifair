@@ -10,5 +10,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true
+  },
+  define: {
+    // Polyfill for Node.js globals if needed
+    'process.env': {}
   }
 })
