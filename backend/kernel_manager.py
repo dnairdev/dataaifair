@@ -87,8 +87,8 @@ def _show_override(*args, **kwargs):
             img_data = buf.getvalue()
             img_base64 = base64.b64encode(img_data).decode('utf-8')
             # Use IPython's display with dict format - this sends display_data message
-            # The format is: {'image/png': base64_string}
-            display({'image/png': img_base64}, raw=True)
+            # The format is: {{'image/png': base64_string}}
+            display({{'image/png': img_base64}}, raw=True)
             plt.close(fig)
     except Exception as e:
         # If display fails, try original show (will just warn)

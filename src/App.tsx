@@ -3,11 +3,10 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useStore } from './store/useStore';
 import Sidebar from './components/Sidebar';
-import CodeEditor from './components/CodeEditor';
+import Notebook from './components/Notebook';
+import VariableInspector from './components/VariableInspector';
 import LearningPanel from './components/LearningPanel';
 import Header from './components/Header';
-import AIProjectBuilder from './components/AIProjectBuilder';
-import AIChat from './components/AIChat';
 import About from './components/About';
 import LandingPage from './components/LandingPage';
 import { generateLearningPrompts, analyzeCodebase } from './utils/aiHelpers';
@@ -19,7 +18,8 @@ function App() {
     addCodebaseInsight,
     hasCompletedOnboarding,
     setUserUseCase,
-    completeOnboarding
+    completeOnboarding,
+    notebookVariables
   } = useStore();
   const [showAbout, setShowAbout] = useState(false);
 
@@ -139,22 +139,42 @@ function App() {
             <Header />
             
             <div className="flex-1 flex overflow-hidden">
-              {/* Code Editor */}
-              <main className="flex-1 overflow-hidden bg-white">
-                <CodeEditor />
+              {/* Notebook */}
+              <main className="flex-1 flex flex-col overflow-hidden bg-white min-w-0">
+                <Notebook />
               </main>
               
-              {/* Project Builder Panel */}
-              <AIProjectBuilder />
+              {/* Variable Inspector */}
+              <VariableInspector 
+                variables={notebookVariables} 
+                onRefresh={async () => {
+                  // Refresh variables from backend
+                  try {
+                    const sessionId = 'default'; // TODO: Get from notebook
+                    await import('./services/api').then(m => m.apiService.getVariables(sessionId));
+                    // Variables would be updated through notebook execution
+                  } catch (error) {
+                    console.error('Failed to refresh variables:', error);
+                  }
+                }}
+                onExecuteCode={async (code: string) => {
+                  // Execute export code in notebook
+                  try {
+                    const { apiService } = await import('./services/api');
+                    const sessionId = 'default';
+                    await apiService.executeCode(code, 'export-cell', sessionId);
+                  } catch (error) {
+                    console.error('Failed to execute export code:', error);
+                    throw error;
+                  }
+                }}
+              />
               
               {/* Learning Panel */}
               <LearningPanel />
             </div>
           </div>
         </div>
-        
-        {/* AI Assistant */}
-        <AIChat />
         
         {/* Toast Notifications */}
         <Toaster 

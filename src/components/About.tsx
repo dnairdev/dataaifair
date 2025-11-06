@@ -5,7 +5,6 @@ import {
   BookOpen,
   Lightbulb,
   Zap,
-  Shield,
   Code,
   ArrowLeft,
   Users,
@@ -14,9 +13,9 @@ import {
 const About: React.FC = () => {
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-900 sticky top-0 z-10">
+      <div className="bg-white dark:bg-black border-b-2 border-black dark:border-white sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -49,103 +48,42 @@ const About: React.FC = () => {
             🥥
           </div>
           <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Learn by Building, Not Copying
+            Your Specialized Data Science Teaching Assistant
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Cocode is an AI-assisted IDE designed to teach you programming while you build real projects. 
-            We believe in understanding the "why" behind code, not just the "what."
+            Cocode is a specialized teaching assistant for data science tasks that teaches while improving efficiency. 
+            Learn data science concepts step-by-step as you build real projects, with AI guidance that explains the "why" behind every line of code.
           </p>
         </div>
 
-        {/* The Problem */}
+        {/* What Cocode Does */}
         <div className="mb-16">
           <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
-              <Shield className="w-6 h-6 text-red-600 dark:text-red-400" />
+            <div className="p-2 bg-black dark:bg-white rounded-lg">
+              <Brain className="w-6 h-6 text-white dark:text-black" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">The Problem We Solve</h3>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">What Cocode Does</h3>
           </div>
-          <div className="bg-red-50 dark:bg-red-950/20 rounded-xl p-6 border border-red-200 dark:border-red-900 mb-6">
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border-2 border-black dark:border-white mb-6">
             <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-              Traditional AI coding assistants have a critical flaw: they make developers dependent on AI, 
-              causing <strong className="text-gray-900 dark:text-white">skill atrophy</strong> and <strong className="text-gray-900 dark:text-white">codebase disconnection</strong>.
+              Cocode is a <strong className="text-black dark:text-white">specialized teaching assistant for data science tasks</strong> that combines 
+              powerful AI assistance with educational guidance. Unlike generic coding assistants, Cocode is designed specifically 
+              for data science workflows, helping you learn pandas, matplotlib, seaborn, numpy, and more while you work.
             </p>
             <div className="grid md:grid-cols-2 gap-4 mt-6">
-              <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-red-200 dark:border-red-800">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Critical Thinking Atrophy</h4>
+              <div className="p-4 bg-white dark:bg-black rounded-lg border-2 border-black dark:border-white">
+                <h4 className="font-semibold text-black dark:text-white mb-2">Teaches While You Work</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  When AI writes code for you, you lose the ability to think through problems independently. 
-                  You become a code copier, not a problem solver.
+                  Every code generation comes with step-by-step explanations that break down data science concepts, 
+                  helping you understand not just what the code does, but why it works.
                 </p>
               </div>
-              <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-red-200 dark:border-red-800">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Codebase Disconnection</h4>
+              <div className="p-4 bg-white dark:bg-black rounded-lg border-2 border-black dark:border-white">
+                <h4 className="font-semibold text-black dark:text-white mb-2">Improves Efficiency</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  When AI debugs and writes code you don't understand, you become less familiar with your own codebase. 
-                  You can't maintain what you didn't build.
+                  Generate data visualizations, analyze datasets, and create data pipelines faster while learning. 
+                  Cocode helps you work smarter, not harder, by automating repetitive tasks and providing intelligent suggestions.
                 </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Our Solution */}
-        <div className="mb-16">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-primary-100 dark:bg-primary-900/20 rounded-lg">
-              <Lightbulb className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Our Solution</h3>
-          </div>
-          <div className="space-y-6">
-            <div className="p-6 bg-primary-50 dark:bg-primary-950/20 rounded-xl border border-primary-200 dark:border-primary-900">
-              <div className="flex items-start space-x-4">
-                <div className="p-2 bg-primary-600 rounded-lg flex-shrink-0">
-                  <Brain className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Learning-Focused AI Assistance
-                  </h4>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                    Cocode provides hints, questions, and explanations—not complete solutions. You learn by doing, 
-                    not by copying. Every step includes educational context so you understand the "why" behind the code.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-primary-50 dark:bg-primary-950/20 rounded-xl border border-primary-200 dark:border-primary-900">
-              <div className="flex items-start space-x-4">
-                <div className="p-2 bg-primary-600 rounded-lg flex-shrink-0">
-                  <Target className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Build Any Product You Want
-                  </h4>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                    Describe what you want to build, and Cocode creates a personalized step-by-step learning plan. 
-                    You'll build real projects while learning concepts, patterns, and best practices.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-primary-50 dark:bg-primary-950/20 rounded-xl border border-primary-200 dark:border-primary-900">
-              <div className="flex items-start space-x-4">
-                <div className="p-2 bg-primary-600 rounded-lg flex-shrink-0">
-                  <Zap className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Track Your Growth
-                  </h4>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                    Monitor your critical thinking skills, codebase familiarity, and learning progress. 
-                    Cocode helps you become a better developer, not just a faster code copier.
-                  </p>
-                </div>
               </div>
             </div>
           </div>
@@ -154,65 +92,133 @@ const About: React.FC = () => {
         {/* Key Features */}
         <div className="mb-16">
           <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-              <Sparkles className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-2 bg-black dark:bg-white rounded-lg">
+              <Lightbulb className="w-6 h-6 text-white dark:text-black" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Key Features</h3>
           </div>
+          <div className="space-y-6">
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-start space-x-4">
+                <div className="p-2 bg-black dark:bg-white rounded-lg flex-shrink-0">
+                  <Brain className="w-5 h-5 text-white dark:text-black" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
+                    Teacher-Like Explanations
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                    Get step-by-step, teacher-like explanations for every code generation. Cocode breaks down data science 
+                    concepts into digestible steps, explaining the "why" behind pandas operations, matplotlib visualizations, 
+                    and data analysis techniques.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-start space-x-4">
+                <div className="p-2 bg-black dark:bg-white rounded-lg flex-shrink-0">
+                  <Target className="w-5 h-5 text-white dark:text-black" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
+                    Data Science Specialized
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                    Built specifically for data science workflows. Generate code for data analysis, visualizations, 
+                    statistical modeling, and more. Upload CSV files, create plots, analyze datasets—all with 
+                    intelligent code generation that understands data science best practices.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-start space-x-4">
+                <div className="p-2 bg-black dark:bg-white rounded-lg flex-shrink-0">
+                  <Zap className="w-5 h-5 text-white dark:text-black" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
+                    Efficiency & Learning Combined
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                    Work faster while learning more. Cocode generates complete, runnable code for your data science tasks 
+                    while teaching you the concepts. No more switching between tutorials and your IDE—learn and build simultaneously.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Science Capabilities */}
+        <div className="mb-16">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-black dark:bg-white rounded-lg">
+              <Sparkles className="w-6 h-6 text-white dark:text-black" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Data Science Capabilities</h3>
+          </div>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
               <div className="flex items-center space-x-3 mb-3">
-                <Code className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                <h4 className="font-semibold text-gray-900 dark:text-white">Line-by-Line Code Explanation</h4>
+                <Code className="w-5 h-5 text-black dark:text-white" />
+                <h4 className="font-semibold text-black dark:text-white">Interactive Notebook</h4>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Understand every line of code with automated explanations that break down concepts, patterns, and best practices.
+                Jupyter-style notebook environment with code cells, output display, and variable inspection. 
+                Run Python code, visualize data, and see results instantly.
               </p>
             </div>
 
-            <div className="p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
               <div className="flex items-center space-x-3 mb-3">
-                <BookOpen className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                <h4 className="font-semibold text-gray-900 dark:text-white">Step-by-Step Project Building</h4>
+                <BookOpen className="w-5 h-5 text-black dark:text-white" />
+                <h4 className="font-semibold text-black dark:text-white">CSV File Management</h4>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Build any product you can imagine with guided tutorials that teach you concepts as you code.
+                Upload CSV files, generate data visualizations automatically, and export DataFrames. 
+                All files are managed in a centralized storage system.
               </p>
             </div>
 
-            <div className="p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
               <div className="flex items-center space-x-3 mb-3">
-                <Brain className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                <h4 className="font-semibold text-gray-900 dark:text-white">Critical Thinking Development</h4>
+                <Brain className="w-5 h-5 text-black dark:text-white" />
+                <h4 className="font-semibold text-black dark:text-white">AI-Powered Code Generation</h4>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Strengthen your problem-solving skills through interactive questions and guided exploration.
+                Chat with the AI assistant to generate data analysis code, create visualizations, 
+                and get explanations. Code is automatically inserted into your notebook.
               </p>
             </div>
 
-            <div className="p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
               <div className="flex items-center space-x-3 mb-3">
-                <Users className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                <h4 className="font-semibold text-gray-900 dark:text-white">Codebase Familiarity</h4>
+                <Users className="w-5 h-5 text-black dark:text-white" />
+                <h4 className="font-semibold text-black dark:text-white">Guiding Questions</h4>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Stay connected to your codebase by understanding what you build, not just what you copy.
+                Test your understanding with AI-generated questions about the codebase and data science concepts. 
+                Learn actively, not passively.
               </p>
             </div>
           </div>
         </div>
 
         {/* Mission Statement */}
-        <div className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950/20 dark:to-primary-900/20 rounded-2xl p-8 border border-primary-200 dark:border-primary-900">
+        <div className="bg-black dark:bg-white rounded-2xl p-8 border-2 border-black dark:border-white">
           <div className="text-center">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            <h3 className="text-2xl font-bold text-white dark:text-black mb-4">
               Our Mission
             </h3>
-            <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed max-w-3xl mx-auto">
-              To empower developers to become better problem solvers and critical thinkers. 
-              We believe that understanding code is more valuable than copying it, and that 
-              building projects is the best way to learn programming. Cocode is not just an IDE—it's 
-              a learning platform that grows with you.
+            <p className="text-lg text-gray-200 dark:text-gray-800 leading-relaxed max-w-3xl mx-auto">
+              To be the specialized teaching assistant for data science that helps you learn while you work. 
+              Cocode combines the efficiency of AI-powered code generation with the depth of educational guidance, 
+              making data science accessible and understandable. We believe that the best way to learn data science 
+              is by doing—and Cocode makes that process faster, smarter, and more educational.
             </p>
           </div>
         </div>
@@ -227,7 +233,7 @@ const About: React.FC = () => {
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('toggleAbout'));
               }}
-              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm"
+              className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors font-medium border-2 border-black dark:border-white"
             >
               Start Building
             </button>
@@ -236,7 +242,7 @@ const About: React.FC = () => {
                 const chatButton = document.querySelector('[aria-label="Open AI Assistant"]') as HTMLElement;
                 chatButton?.click();
               }}
-              className="px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium"
+              className="px-6 py-3 bg-white dark:bg-black text-black dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors font-medium border-2 border-black dark:border-white"
             >
               Ask the AI Assistant
             </button>

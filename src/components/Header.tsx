@@ -5,8 +5,7 @@ import {
   Menu,
   Zap,
   BookOpen,
-  Target,
-  Sparkles
+  Target
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
@@ -16,8 +15,6 @@ const Header: React.FC = () => {
     toggleSidebar, 
     toggleLearningPanel,
     learningPanelOpen,
-    toggleProjectBuilder,
-    projectBuilderOpen,
     resetOnboarding
   } = useStore();
 
@@ -32,7 +29,7 @@ const Header: React.FC = () => {
   const ThinkingIcon = thinkingLevel.icon;
 
   return (
-    <header className="bg-white border-b border-gray-100">
+    <header className="bg-white border-b border-gray-100 flex-shrink-0">
       <div className="px-8 py-4">
         <div className="flex items-center justify-between">
           {/* Left side - Logo and Purpose */}
@@ -59,24 +56,6 @@ const Header: React.FC = () => {
             </div>
           </div>
 
-          {/* Center - Quick Stats (simplified) */}
-          <div className="hidden lg:flex items-center space-x-4">
-            <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-50">
-              <ThinkingIcon className={`w-4 h-4 ${thinkingLevel.color}`} />
-              <span className="text-sm font-medium text-gray-900">
-                {userProgress.criticalThinkingScore}
-              </span>
-            </div>
-            {userProgress.streak > 0 && (
-              <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-50">
-                <Zap className="w-4 h-4 text-amber-500" />
-                <span className="text-sm font-medium text-gray-900">
-                  {userProgress.streak}d streak
-                </span>
-              </div>
-            )}
-          </div>
-
           {/* Right side - Primary Actions */}
           <div className="flex items-center space-x-3">
             <button
@@ -100,18 +79,6 @@ const Header: React.FC = () => {
             >
               <span className="hidden sm:inline">About</span>
               <span className="sm:hidden"><BookOpen className="w-4 h-4" /></span>
-            </button>
-            <button
-              onClick={toggleProjectBuilder}
-              className={`px-4 py-2 rounded-lg transition-all font-medium text-sm ${
-                projectBuilderOpen 
-                  ? 'bg-gray-900 text-white' 
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-              title="Build Projects"
-            >
-              <span className="hidden sm:inline">Build</span>
-              <span className="sm:hidden"><Sparkles className="w-4 h-4" /></span>
             </button>
             <button
               onClick={toggleLearningPanel}

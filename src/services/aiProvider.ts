@@ -64,17 +64,26 @@ export class MockAIProvider implements AIProvider {
     const concepts: string[] = [];
     const suggestions: string[] = [];
     
+    // Start with an overview
+    explanation += `## 📚 Let's Learn This Code Step-by-Step\n\n`;
+    explanation += `In this code, we're going to break down each part and understand what it does and why it's important. Let's walk through it together!\n\n`;
+    
     // Detect pandas usage
     if (codeLower.includes('pd.dataframe') || codeLower.includes('pandas') || codeLower.includes('import pandas')) {
       concepts.push('Pandas DataFrame');
       
       if (codeLower.includes('pd.dataframe(')) {
-        explanation += `**DataFrame Creation**: This code creates a pandas DataFrame, which is a two-dimensional data structure similar to a spreadsheet or SQL table. `;
-        explanation += `DataFrames are the heart of data analysis in Python - they let you work with tabular data efficiently.\n\n`;
+        explanation += `### Step 1: Understanding DataFrames\n\n`;
+        explanation += `A pandas DataFrame is like a spreadsheet or a table in a database. It's a two-dimensional data structure that organizes data into rows and columns. `;
+        explanation += `Think of it like an Excel sheet - you have columns (like "Name", "Age") and rows (each person's data). `;
+        explanation += `DataFrames are the foundation of data analysis in Python because they make it easy to work with structured data.\n\n`;
         
         if (codeLower.includes('{') && codeLower.includes(':')) {
-          explanation += `**Creating from Dictionary**: You're creating the DataFrame from a Python dictionary. `;
-          explanation += `Here's how it works: each key in the dictionary becomes a column name, and the corresponding list becomes that column's data. `;
+          explanation += `### Step 2: Creating a DataFrame from a Dictionary\n\n`;
+          explanation += `In your code, you're creating the DataFrame from a Python dictionary. Here's how it works step-by-step:\n\n`;
+          explanation += `1. **Dictionary Structure**: Each key in the dictionary becomes a column name (like "Name", "Age", "City")\n`;
+          explanation += `2. **Column Data**: Each value (which is a list) becomes the data in that column\n`;
+          explanation += `3. **Row Alignment**: Python automatically aligns the data - the first item in each list becomes row 1, the second item becomes row 2, and so on\n\n`;
           
           // Try to extract column names
           const dictMatch = code.match(/\{[\s\S]*?\}/);
@@ -83,29 +92,40 @@ export class MockAIProvider implements AIProvider {
             const columnMatches = dictContent.match(/'([^']+)'|"([^"]+)"/g);
             if (columnMatches && columnMatches.length > 0) {
               const columnNames = columnMatches.filter((_, i) => i % 2 === 0).map(c => c.replace(/['"]/g, ''));
-              explanation += `In your code, you're creating columns: ${columnNames.join(', ')}. `;
+              explanation += `**In your specific code**, you're creating these columns: ${columnNames.join(', ')}. `;
+              explanation += `Each column will contain the data from the corresponding list in your dictionary.\n\n`;
             }
           }
           
-          explanation += `This dictionary-to-DataFrame pattern is perfect for small datasets because you can see the entire structure at a glance. `;
-          explanation += `For larger datasets, you'd typically load data from CSV files or databases.\n\n`;
+          explanation += `**Why use a dictionary?** This pattern is perfect for small datasets because:\n`;
+          explanation += `- You can see the entire data structure at a glance\n`;
+          explanation += `- It's easy to modify and experiment with\n`;
+          explanation += `- It's human-readable and self-documenting\n\n`;
+          explanation += `For larger datasets, you'd typically load data from CSV files or databases, but starting with a dictionary is a great way to learn!\n\n`;
         }
       }
       
       if (codeLower.includes('df[') || codeLower.includes('df.')) {
-        explanation += `**DataFrame Operations**: You're working with DataFrame methods and indexing. `;
-        explanation += `When you use \`df[...]\`, you're selecting columns, while \`df.method()\` calls DataFrame methods for operations like filtering, grouping, or transforming data.\n\n`;
+        explanation += `### Step 3: Working with DataFrame Data\n\n`;
+        explanation += `Now that you have a DataFrame, you can access and manipulate the data. Here's how:\n\n`;
+        explanation += `- **\`df[...]\`**: This is called "bracket notation" - it lets you select specific columns. For example, \`df['Name']\` gets just the Name column.\n`;
+        explanation += `- **\`df.method()\`**: This calls DataFrame methods for operations like filtering, grouping, or transforming data. Methods like \`df.head()\`, \`df.describe()\`, or \`df.groupby()\` are powerful tools for data analysis.\n\n`;
+        explanation += `**Think of it this way**: The DataFrame is like a toolbox, and these methods are the tools inside it. Each tool does a specific job with your data!\n\n`;
         concepts.push('DataFrame Indexing');
       }
       
       if (codeLower.includes('print(df)') || (codeLower.includes('print(') && codeLower.includes('df'))) {
-        explanation += `**Displaying Your Data**: The \`print(df)\` statement shows your DataFrame in a nicely formatted table. `;
-        explanation += `Notice how pandas automatically:\n`;
-        explanation += `- Aligns columns for readability\n`;
-        explanation += `- Shows row numbers (indices) on the left\n`;
-        explanation += `- Displays column names at the top\n`;
-        explanation += `- Truncates output if you have many rows (you'll see "..." in the middle)\n\n`;
-        explanation += `This formatted output makes it easy to see your data structure and verify that your DataFrame was created correctly.\n\n`;
+        explanation += `### Step 4: Displaying Your Results\n\n`;
+        explanation += `The \`print(df)\` statement shows your DataFrame in a beautifully formatted table. Let's see what pandas does automatically:\n\n`;
+        explanation += `1. **Column Alignment**: Columns are neatly aligned for easy reading\n`;
+        explanation += `2. **Row Numbers**: Indices (row numbers) appear on the left side - these help you identify specific rows\n`;
+        explanation += `3. **Column Headers**: Column names are displayed at the top\n`;
+        explanation += `4. **Smart Truncation**: If you have many rows, pandas shows "..." in the middle to keep the output manageable\n\n`;
+        explanation += `**Why is this important?** Seeing your data formatted like this helps you:\n`;
+        explanation += `- Verify that your DataFrame was created correctly\n`;
+        explanation += `- Understand the structure of your data\n`;
+        explanation += `- Spot any issues or unexpected values\n\n`;
+        explanation += `It's like proofreading your work - you want to make sure everything looks right before you continue!\n\n`;
       }
     }
     
@@ -178,31 +198,53 @@ export class MockAIProvider implements AIProvider {
     
     // Add line-by-line analysis for DataFrame creation pattern
     if (codeLower.includes('pd.dataframe') && codeLower.includes('print')) {
-      explanation += `**Step-by-Step Breakdown**:\n\n`;
+      explanation += `### Step-by-Step Line-by-Line Breakdown\n\n`;
+      explanation += `Let's go through your code line by line to understand exactly what's happening:\n\n`;
       
+      let stepNumber = 1;
       lines.forEach((line, idx) => {
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith('#')) return;
         
         if (trimmed.includes('import pandas')) {
-          explanation += `- **Line ${idx + 1} - Import**: This imports the pandas library, giving you access to powerful data manipulation tools. `;
-          explanation += `The alias \`pd\` is a Python convention - it's shorter to type and everyone recognizes it.\n\n`;
+          explanation += `**Step ${stepNumber++} - Line ${idx + 1}: Importing Libraries**\n\n`;
+          explanation += `\`${trimmed}\`\n\n`;
+          explanation += `This line imports the pandas library and gives it the nickname \`pd\`. Here's why this matters:\n`;
+          explanation += `- **Import**: Python needs to know where to find the pandas code - this line tells Python "go get the pandas library"\n`;
+          explanation += `- **Alias \`pd\`**: Instead of typing \`pandas.DataFrame()\` every time, we can just type \`pd.DataFrame()\`. It's shorter and it's what everyone in the Python community does - it's a convention!\n`;
+          explanation += `- **Why pandas?**: Pandas gives us powerful tools for working with data - it's like having a super-powered Excel built into Python.\n\n`;
         } else if (trimmed.includes('data = {') || (trimmed.includes('=') && trimmed.includes('{'))) {
-          explanation += `- **Line ${idx + 1} - Dictionary Definition**: You're creating a dictionary called \`data\`. `;
-          explanation += `Each key (like 'Name', 'Age') represents a column, and each value is a list of data for that column. `;
-          explanation += `Notice how all lists must have the same length - this ensures each row has data for every column.\n\n`;
+          explanation += `**Step ${stepNumber++} - Line ${idx + 1}: Creating the Data Dictionary**\n\n`;
+          explanation += `\`${trimmed}\`\n\n`;
+          explanation += `This line creates a dictionary that will become our DataFrame. Let's break it down:\n`;
+          explanation += `- **Dictionary Structure**: Each key (like 'Name', 'Age') will become a column name in our DataFrame\n`;
+          explanation += `- **List Values**: Each value is a list - these lists become the data in each column\n`;
+          explanation += `- **Important Rule**: All lists must have the same length! If one list has 4 items and another has 3, Python will give you an error. This ensures each row has data for every column.\n`;
+          explanation += `- **Think of it like this**: You're creating a blueprint for a table - the keys are the column headers, and the lists are the data that will fill those columns.\n\n`;
         } else if (trimmed.includes('df = pd.DataFrame')) {
-          explanation += `- **Line ${idx + 1} - DataFrame Creation**: This line converts your dictionary into a DataFrame. `;
-          explanation += `Think of \`pd.DataFrame()\` as a function that transforms structured data (your dictionary) into a table format. `;
-          explanation += `The result is stored in the variable \`df\`, which now holds your tabular data.\n\n`;
+          explanation += `**Step ${stepNumber++} - Line ${idx + 1}: Converting Dictionary to DataFrame**\n\n`;
+          explanation += `\`${trimmed}\`\n\n`;
+          explanation += `This is where the magic happens! This line transforms your dictionary into a DataFrame:\n`;
+          explanation += `- **\`pd.DataFrame()\`**: This is a function (a special command) that takes your dictionary and converts it into a table format\n`;
+          explanation += `- **The Transformation**: Think of it like taking a recipe (your dictionary) and actually cooking the meal (creating the DataFrame)\n`;
+          explanation += `- **Storing the Result**: The \`=\` sign stores the result in a variable called \`df\`. Now \`df\` holds your complete DataFrame with all the data organized in rows and columns\n`;
+          explanation += `- **Why \`df\`?**: It's short for "DataFrame" - another Python convention that makes code easier to read and write\n\n`;
         } else if (trimmed.includes('print(') && trimmed.includes('df')) {
-          explanation += `- **Line ${idx + 1} - Display**: The \`print()\` function outputs your DataFrame to the console. `;
-          explanation += `This lets you verify that your data was structured correctly and see what the DataFrame looks like.\n\n`;
+          explanation += `**Step ${stepNumber++} - Line ${idx + 1}: Displaying the Results**\n\n`;
+          explanation += `\`${trimmed}\`\n\n`;
+          explanation += `This line shows you what your DataFrame looks like:\n`;
+          explanation += `- **\`print()\`**: This function displays information on your screen - it's like showing your work\n`;
+          explanation += `- **What You'll See**: Pandas automatically formats the output as a nice table with aligned columns, row numbers, and headers\n`;
+          explanation += `- **Why This Matters**: Seeing your data helps you verify everything worked correctly - it's like checking your answer in math class!\n\n`;
         } else if (trimmed.includes('print(')) {
           const messageMatch = trimmed.match(/print\(["']([^"']+)["']\)/);
           if (messageMatch) {
-            explanation += `- **Line ${idx + 1} - Message**: This prints a descriptive message. `;
-            explanation += `Adding labels like "${messageMatch[1]}" helps you understand what output you're looking at, especially when running multiple cells.\n\n`;
+            explanation += `**Bonus - Line ${idx + 1}: Adding a Label**\n\n`;
+            explanation += `\`${trimmed}\`\n\n`;
+            explanation += `This prints a message like "${messageMatch[1]}" before showing your data. This is a great practice because:\n`;
+            explanation += `- It helps you understand what output you're looking at\n`;
+            explanation += `- When you run multiple cells, labels help you keep track of which output is which\n`;
+            explanation += `- It makes your code more readable and professional\n\n`;
           }
         }
       });
@@ -210,20 +252,41 @@ export class MockAIProvider implements AIProvider {
     
     // Provide educational context for other code
     if (!explanation || explanation.length < 50) {
-      explanation += `**Code Overview**: This ${lines.length}-line code block demonstrates Python programming concepts. `;
-      explanation += `Let's break down what's happening:\n\n`;
+      explanation += `## 📚 Understanding This Code\n\n`;
+      explanation += `This ${lines.length}-line code block demonstrates important Python programming concepts. Let's walk through it step by step:\n\n`;
       
+      let stepNum = 1;
       // Analyze each significant line
       lines.forEach((line, idx) => {
         const trimmed = line.trim();
         if (trimmed && !trimmed.startsWith('#') && trimmed.length > 5) {
           if (trimmed.includes('=') && !trimmed.includes('==')) {
-            explanation += `- **Line ${idx + 1}**: Creates a variable and assigns a value to it. `;
-            explanation += `This stores data that you can use later in your code.\n`;
+            explanation += `### Step ${stepNum++}: Line ${idx + 1}\n\n`;
+            explanation += `\`${trimmed}\`\n\n`;
+            explanation += `This line creates a variable and assigns a value to it. Here's what that means:\n`;
+            explanation += `- **Variable**: Think of a variable like a labeled box where you store information\n`;
+            explanation += `- **Assignment**: The \`=\` sign puts data into that box\n`;
+            explanation += `- **Why This Matters**: Once data is stored in a variable, you can use it later in your code - you don't have to retype the data every time!\n\n`;
           }
         }
       });
     }
+    
+    // Add a summary section
+    explanation += `## 🎓 Summary: What We Learned\n\n`;
+    explanation += `Great job working through this code! Here's what we covered:\n\n`;
+    if (concepts.length > 0) {
+      explanation += `**Key Concepts**:\n`;
+      concepts.forEach(concept => {
+        explanation += `- ${concept}\n`;
+      });
+      explanation += `\n`;
+    }
+    explanation += `**Takeaways**:\n`;
+    explanation += `- We learned how to structure data using dictionaries and DataFrames\n`;
+    explanation += `- We saw how Python libraries like pandas make data analysis easier\n`;
+    explanation += `- We practiced displaying and viewing our data\n\n`;
+    explanation += `**Next Steps**: Try modifying the data in your dictionary and see how it changes the DataFrame. Experimentation is the best way to learn!\n\n`;
     
     // Add educational suggestions - teacher-like guidance
     if (codeLower.includes('pd.dataframe')) {
@@ -299,32 +362,140 @@ export class MockAIProvider implements AIProvider {
     await new Promise(resolve => setTimeout(resolve, 700));
 
     const errorLower = request.error.toLowerCase();
+    const errorText = request.error;
+    const tracebackText = request.traceback || '';
     
     let explanation = 'This error occurred during code execution.';
     let solution = 'Review the error message and check your code logic.';
     let commonMistakes: string[] = [];
     let relatedConcepts: string[] = [];
 
-    if (errorLower.includes('nameerror') || errorLower.includes('name')) {
-      explanation = 'A NameError occurs when Python cannot find a variable or function name.';
-      solution = 'Check that all variables are defined before use, and verify spelling.';
-      commonMistakes = ['Typos in variable names', 'Using variables before assignment', 'Scope issues'];
-      relatedConcepts = ['Variable scope', 'Python naming conventions'];
+    // Handle matplotlib backend warnings
+    if (errorLower.includes('figurecanvasagg') || errorLower.includes('non-interactive') || 
+        (errorLower.includes('cannot be shown') && errorLower.includes('plt.show'))) {
+      explanation = 'You\'re seeing this warning because matplotlib is trying to display a plot interactively, but the notebook environment uses a non-interactive backend (Agg). This is normal for web-based notebooks! The plot should still be saved and displayed automatically.';
+      solution = 'The plot should already be displayed above. If you don\'t see it, make sure you\'re creating a plot before calling `plt.show()`. The system automatically captures plots when you call `plt.show()`. You can safely ignore this warning - it\'s just informing you that the backend is non-interactive, which is expected in this environment.';
+      commonMistakes = [
+        'Calling `plt.show()` without creating a plot first',
+        'Trying to use interactive matplotlib features that require a GUI',
+        'Forgetting that plots are automatically captured and displayed'
+      ];
+      relatedConcepts = ['Matplotlib backends', 'Non-interactive plotting', 'Plot display in notebooks'];
+    } else if (errorLower.includes('nameerror') || errorLower.includes('name')) {
+      explanation = 'A NameError occurs when Python cannot find a variable or function name. This means you\'re trying to use something that hasn\'t been defined yet.';
+      solution = 'Check that all variables are defined before use, and verify spelling. Make sure you\'ve imported any libraries you need (like `import pandas as pd`).';
+      commonMistakes = ['Typos in variable names', 'Using variables before assignment', 'Scope issues', 'Missing import statements'];
+      relatedConcepts = ['Variable scope', 'Python naming conventions', 'Import statements'];
     } else if (errorLower.includes('typeerror') || errorLower.includes('type')) {
-      explanation = 'A TypeError occurs when an operation is performed on an incompatible data type.';
-      solution = 'Check the types of your variables and ensure they support the operation.';
-      commonMistakes = ['Mixing strings and numbers', 'Calling non-callable objects', 'Wrong argument types'];
-      relatedConcepts = ['Python data types', 'Type conversion'];
+      explanation = 'A TypeError occurs when an operation is performed on an incompatible data type. Python is strict about types - you can\'t do things like add a string to a number without converting first.';
+      solution = 'Check the types of your variables using `type(variable_name)` and ensure they support the operation you\'re trying to perform. You may need to convert types using functions like `int()`, `str()`, or `float()`.';
+      commonMistakes = ['Mixing strings and numbers', 'Calling non-callable objects', 'Wrong argument types', 'Forgetting to convert types'];
+      relatedConcepts = ['Python data types', 'Type conversion', 'Type checking'];
     } else if (errorLower.includes('attributeerror') || errorLower.includes('attribute')) {
-      explanation = 'An AttributeError occurs when trying to access an attribute that does not exist.';
-      solution = 'Verify the object has the attribute you are trying to access.';
-      commonMistakes = ['Wrong method name', 'Object is None', 'Wrong object type'];
-      relatedConcepts = ['Object attributes', 'Method calls'];
+      explanation = 'An AttributeError occurs when trying to access an attribute or method that does not exist on an object. This usually means the object doesn\'t have the method you\'re trying to call.';
+      solution = 'Verify the object has the attribute you are trying to access. Check the documentation for the correct method name, or use `dir(object)` to see what attributes are available.';
+      commonMistakes = ['Wrong method name (e.g., `df.head()` vs `df.heads()`)', 'Object is None', 'Wrong object type', 'Method doesn\'t exist for this version'];
+      relatedConcepts = ['Object attributes', 'Method calls', 'Object-oriented programming'];
     } else if (errorLower.includes('indexerror') || errorLower.includes('index')) {
-      explanation = 'An IndexError occurs when trying to access an index that does not exist.';
-      solution = 'Check the length of your list/array before accessing indices.';
-      commonMistakes = ['Accessing beyond list length', 'Negative index out of range', 'Empty list access'];
-      relatedConcepts = ['List indexing', 'Array bounds'];
+      explanation = 'An IndexError occurs when trying to access an index that does not exist. This happens when you try to access position N in a list/array, but the list only has positions 0 through N-1.';
+      solution = 'Check the length of your list/array before accessing indices using `len(your_list)`. Remember: Python uses 0-based indexing, so the first element is at index 0, not 1.';
+      commonMistakes = ['Accessing beyond list length', 'Negative index out of range', 'Empty list access', 'Confusing 0-based vs 1-based indexing'];
+      relatedConcepts = ['List indexing', 'Array bounds', 'Zero-based indexing'];
+    } else if (errorLower.includes('importerror') || errorLower.includes('modulenotfounderror') || errorLower.includes('no module named')) {
+      explanation = 'An ImportError or ModuleNotFoundError means Python cannot find the module you\'re trying to import. This usually means the package isn\'t installed.';
+      solution = 'Install the missing package using `pip install package_name`. For example, if you see "No module named pandas", run `pip install pandas` in your terminal.';
+      commonMistakes = ['Package not installed', 'Typo in import statement', 'Wrong package name', 'Virtual environment not activated'];
+      relatedConcepts = ['Package installation', 'pip', 'Python imports', 'Virtual environments'];
+    } else if (errorLower.includes('keyerror') || errorLower.includes('key')) {
+      explanation = 'A KeyError occurs when trying to access a dictionary key that doesn\'t exist. Unlike lists, dictionaries don\'t have numeric indices - you must use the exact key name.';
+      solution = 'Check that the key exists in the dictionary using `"key" in dictionary` or use `dictionary.get("key", default_value)` to provide a default if the key is missing.';
+      commonMistakes = ['Typo in key name', 'Key doesn\'t exist', 'Case sensitivity issues', 'Wrong dictionary variable'];
+      relatedConcepts = ['Dictionaries', 'Key-value pairs', 'Dictionary methods'];
+    } else if (errorLower.includes('filenotfounderror') || errorLower.includes('no such file') || errorLower.includes('file not found')) {
+      explanation = 'A FileNotFoundError occurs when Python tries to open a file that doesn\'t exist in the current directory. This is common when code references files that haven\'t been created or uploaded yet.';
+      solution = 'Instead of reading from a file, you can:\n1. Generate sample data programmatically using pandas: `pd.DataFrame({...})`\n2. Use built-in sample datasets: `sns.load_dataset("tips")` or `sns.load_dataset("iris")`\n3. Create data manually using dictionaries or lists\n4. If you need real data, make sure the file exists in the same directory as your code';
+      commonMistakes = [
+        'Trying to read a CSV file that doesn\'t exist',
+        'Using the wrong file path',
+        'Not checking if the file exists first',
+        'Forgetting to generate sample data for examples'
+      ];
+      relatedConcepts = ['File I/O', 'Data generation', 'Sample datasets', 'Error handling'];
+    } else if (errorLower.includes('valueerror') && (errorLower.includes('all arrays must be of the same length') || errorLower.includes('arrays must be of the same length'))) {
+      explanation = `## 📚 Understanding the ValueError: Array Length Mismatch
+
+**What happened?**
+
+You're trying to create a pandas DataFrame from a dictionary, but the lists in your dictionary have different lengths. Think of it like trying to build a table where one column has 31 rows, another has 30 rows, and another has 29 rows - it just doesn't work! Every column in a DataFrame must have exactly the same number of rows.
+
+**Why does this happen?**
+
+When you create a DataFrame from a dictionary:
+- Each key becomes a column name
+- Each value (list) becomes the data in that column
+- **All lists MUST have the same length** - this is a fundamental rule of DataFrames
+
+**Common causes:**
+1. Counting errors when creating lists manually
+2. Using pd.date_range() which might create a different number of dates than expected
+3. Forgetting that months have different numbers of days (January = 31, February = 28/29, etc.)
+4. Accidentally adding or removing items from one list but not the others`;
+      solution = `## 🔧 How to Fix This - Step by Step
+
+**Step 1: Count the items in each list**
+
+Check how many items are in each of your lists:
+\`\`\`python
+# Count items in each list
+print(f"Date: {len(pd.date_range(start='2022-01-01', end='2022-01-31'))} items")
+print(f"NewCases: {len([320, 410, ...])} items")  # Replace with your actual list
+print(f"NewDeaths: {len([10, 15, ...])} items")   # Replace with your actual list
+\`\`\`
+
+**Step 2: Make all lists the same length**
+
+You have two options:
+
+**Option A: Fix the date range** (if you have 30 data points)
+\`\`\`python
+# Use periods=30 instead of end date to get exactly 30 dates
+'Date': pd.date_range(start='2022-01-01', periods=30, freq='D')
+\`\`\`
+
+**Option B: Add missing data points** (if you need 31 days)
+\`\`\`python
+# Add one more value to NewCases and NewDeaths lists
+'NewCases': [320, 410, ..., 120, 110],  # Add one more number
+'NewDeaths': [10, 15, ..., 23, 25]      # Add one more number
+\`\`\`
+
+**Step 3: Verify the fix**
+
+After fixing, verify all lists have the same length:
+\`\`\`python
+data = {...}  # Your fixed dictionary
+lengths = {key: len(value) for key, value in data.items()}
+print(lengths)  # All values should be the same!
+\`\`\`
+
+**Quick Fix for Your Code:**
+
+Since January has 31 days but your lists have 30 items, use:
+\`\`\`python
+data = {
+    'Date': pd.date_range(start='2022-01-01', periods=30, freq='D'),  # Changed to periods=30
+    'NewCases': [320, 410, 380, ..., 120],  # Your 30 values
+    'NewDeaths': [10, 15, 12, ..., 23]      # Your 30 values
+}
+\`\`\``;
+      commonMistakes = [
+        'Forgetting that months have different numbers of days',
+        'Using end date instead of periods parameter in pd.date_range()',
+        'Manually counting items incorrectly',
+        'Adding/removing items from one list but not others',
+        'Not checking list lengths before creating DataFrame'
+      ];
+      relatedConcepts = ['DataFrame creation', 'Data alignment', 'pd.date_range()', 'List length matching', 'Data validation'];
     }
 
     return {
@@ -345,6 +516,9 @@ export function setAIProvider(provider: AIProvider) {
   // For now, we'll use the singleton pattern
   Object.assign(aiProvider, provider);
 }
+
+
+
 
 
 

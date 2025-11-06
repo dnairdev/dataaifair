@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const OpenAI = require('openai');
 const { v4: uuidv4 } = require('uuid');
+const http = require('http');
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -21,8 +22,18 @@ router.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
+    // Get available files from file storage
+    const availableFiles = await getAvailableFiles();
+    const filesContext = availableFiles.length > 0 
+      ? `\n\nAVAILABLE FILES IN FILE STORAGE:\nThe following files are already uploaded and accessible in the working directory:\n${availableFiles.map(f => {
+          const fileName = f.original_name || f.filename || f.name || String(f);
+          const fileType = f.file_type || f.type || 'unknown';
+          return `- ${fileName} (${fileType})`;
+        }).join('\n')}\n\nIf the user asks about data analysis or visualization, you CAN reference these files and suggest using them with pd.read_csv(), pd.read_json(), etc. Files are accessible directly by their filename in the current working directory.`
+      : '';
+
     // Create educational prompt based on user level and context
-    const systemPrompt = `You are an expert coding teacher and mentor for DataAIFair IDE. Your role is to teach like a patient, thorough teacher who breaks down complex concepts into simple, digestible steps.
+    const systemPrompt = `You are an expert coding teacher and mentor for Coco. Your role is to teach like a patient, thorough teacher who breaks down complex concepts into simple, digestible steps.
 
 TEACHING STYLE - Be like a great teacher:
 1. **Step-by-step explanations**: Break down every concept into numbered steps (Step 1, Step 2, etc.)
@@ -43,7 +54,7 @@ EXPLANATION FORMAT:
 - Suggest practice exercises or next steps
 
 User skill level: ${userLevel}
-Current context: ${context || 'General coding assistance'}
+Current context: ${context || 'General coding assistance'}${filesContext}
 
 Remember: Teach like you're explaining to a student sitting next to you, not like you're writing documentation. Be conversational, clear, and thorough.`;
 
@@ -81,6 +92,57 @@ Remember: Teach like you're explaining to a student sitting next to you, not lik
   }
 });
 
+// Helper function to get available files from Python backend
+async function getAvailableFiles() {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'localhost',
+      port: 8000,
+      path: '/api/files',
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    const req = http.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        try {
+          if (res.statusCode === 200) {
+            const parsed = JSON.parse(data);
+            resolve(parsed.files || []);
+          } else {
+            console.error('[Backend] Error fetching files: HTTP', res.statusCode);
+            resolve([]);
+          }
+        } catch (error) {
+          console.error('[Backend] Error parsing files response:', error);
+          resolve([]);
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      console.error('[Backend] Error fetching files:', error.message);
+      resolve([]);
+    });
+
+    req.setTimeout(2000, () => {
+      req.destroy();
+      console.error('[Backend] Timeout fetching files');
+      resolve([]);
+    });
+
+    req.end();
+  });
+}
+
 // Code generation endpoint
 router.post('/generate-code', async (req, res) => {
   try {
@@ -90,40 +152,67 @@ router.post('/generate-code', async (req, res) => {
       return res.status(400).json({ error: 'Description is required' });
     }
 
-    const systemPrompt = `You are an expert Python data science teacher for DataAIFair IDE. Generate complete, runnable ${type} code in ${language} with step-by-step, teacher-like explanations.
+    // Get available files from file storage
+    const availableFiles = await getAvailableFiles();
+    const filesContext = availableFiles.length > 0 
+      ? `\n\nAVAILABLE FILES IN FILE STORAGE:\nThe following files are already uploaded and accessible in the working directory:\n${availableFiles.map(f => {
+          const fileName = f.original_name || f.filename || f.name || String(f);
+          const fileType = f.file_type || f.type || 'unknown';
+          return `- ${fileName} (${fileType})`;
+        }).join('\n')}\n\nYou CAN use these files in your code with pd.read_csv(), pd.read_json(), etc. The files are in the current working directory and can be accessed directly by filename.`
+      : '\n\nNOTE: No files are currently uploaded to file storage. Generate sample data instead of reading from files.';
+
+    const systemPrompt = `You are an expert Python data science teacher for Coco. Generate complete, runnable ${type} code in ${language} with step-by-step, teacher-like explanations.
 
 IMPORTANT RULES:
-1. NEVER reference external files (CSV, JSON, etc.) that don't exist. Instead, generate sample data using:
+1. **FILE ACCESS**: ${availableFiles.length > 0 
+      ? `The following files are AVAILABLE in file storage: ${availableFiles.map(f => f.original_name || f.filename || f.name || String(f)).join(', ')}. You CAN and SHOULD use these files if they match what the user needs. Use pd.read_csv(), pd.read_json(), etc. to load them. Files are accessible directly by their filename in the current working directory.`
+      : 'No files are currently uploaded. Generate sample data instead of reading from files.'}
+   
+2. If no files are available or the user's request doesn't match available files, generate sample data using:
    - pandas: Create DataFrames from dictionaries or use pd.DataFrame()
    - seaborn: Use sns.load_dataset() for sample datasets (tips, iris, flights, etc.)
    - numpy: Generate random data with np.random
    - Manual data creation: Use dictionaries or lists
 
-2. When the user asks for data analysis, visualizations, or data work, ALWAYS generate actual working code using libraries like pandas, matplotlib, seaborn, numpy.
+3. When the user asks for data analysis, visualizations, or data work, ALWAYS generate actual working code using libraries like pandas, matplotlib, seaborn, numpy.
 
-3. For any dataset requests (covid, sales, etc.), create sample data programmatically - DO NOT use pd.read_csv() unless the file is guaranteed to exist.
+4. **PRIORITIZE AVAILABLE FILES**: If files are available and match the user's request, use them instead of generating sample data.
 
-TEACHING STYLE - Explain like a teacher:
+5. **CRITICAL - CODE CLEANLINESS**: 
+   - The "code" field must contain CLEAN, production-ready code WITHOUT teaching comments like "Step 1:", "Step 2:", "First we...", "Next we...", etc.
+   - Only include minimal, essential comments (e.g., "# Import libraries" or "# Create DataFrame")
+   - NO step-by-step teaching language in the code itself
+   - All teaching explanations go ONLY in the "explanation" field
+
+6. **CSV + VISUALIZATION RULE**: 
+   - When user asks for CSV data (e.g., "give me a csv with fake covid data"), you MUST:
+     a) Generate the CSV data and save it using data.to_csv()
+     b) ALSO create at least one visualization (plot, chart, graph) of the data
+     c) Include plt.show() to display the visualization
+     d) The code should create BOTH the CSV file AND show a plot
+
+TEACHING STYLE - Explain like a teacher (in explanation field ONLY):
 - Break down the explanation into clear, numbered steps
 - Start with an overview: "In this code, we're going to..."
 - Explain each section step-by-step: "Step 1: First, we import...", "Step 2: Next, we create...", etc.
 - Explain WHY we do each step, not just WHAT it does
 - Use simple language and analogies when helpful
 - Show the progression: how each step builds on the previous one
-- End with a summary: "To summarize, we've learned..."
+- DO NOT include "To summarize" or summary sections - just end after the steps
 
 Requirements:
 - Generate complete, runnable code that can be executed immediately WITHOUT external files
 - Include all necessary imports (pandas, matplotlib, seaborn, numpy, etc.)
 - For data analysis requests, ALWAYS generate sample data programmatically or use built-in datasets
-- Include comprehensive comments in the code explaining each part
-- Provide step-by-step educational explanation that teaches the concepts
+- Keep code clean and professional - NO teaching comments in code
+- Provide step-by-step educational explanation in the "explanation" field that teaches the concepts
 - Include learning points and best practices
 - Show the "why" behind implementation decisions
 - Complexity level: ${complexity}
 - ALWAYS include code in the response - never just explain without code
 
-Context: ${context || 'No specific context provided'}
+Context: ${context || 'No specific context provided'}${filesContext}
 
 For data visualization requests, generate complete code including:
 - Import statements
@@ -131,21 +220,37 @@ For data visualization requests, generate complete code including:
 - Plot creation with seaborn/matplotlib
 - plt.show() or display commands
 
-Example of good data generation:
+Example of CLEAN code (what to generate):
 \`\`\`python
-# Generate sample data for COVID visualization
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
 dates = pd.date_range(start='2020-01-01', periods=100, freq='D')
 data = pd.DataFrame({
     'date': dates,
     'cases': np.random.randint(100, 1000, 100).cumsum(),
     'deaths': np.random.randint(5, 50, 100).cumsum()
 })
+
+data.to_csv('covid_data.csv', index=False)
+
+plt.figure(figsize=(12, 6))
+plt.plot(data['date'], data['cases'], label='Cases', linewidth=2)
+plt.plot(data['date'], data['deaths'], label='Deaths', linewidth=2)
+plt.title('COVID-19 Cases and Deaths Over Time')
+plt.xlabel('Date')
+plt.ylabel('Count')
+plt.legend()
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
 \`\`\`
 
 Format your response as JSON with:
 {
-  "code": "the complete, runnable generated code with inline comments",
-  "explanation": "STEP-BY-STEP teacher-like explanation. Start with an overview, then break into numbered steps (Step 1, Step 2, etc.), explain each step in detail, and end with a summary. Be conversational and educational.",
+  "code": "CLEAN, runnable Python code WITHOUT teaching comments. Only minimal essential comments.",
+  "explanation": "STEP-BY-STEP teacher-like explanation. Start with an overview, then break into numbered steps (Step 1, Step 2, etc.), explain each step in detail. Be conversational and educational. This is where ALL teaching content goes.",
   "learningPoints": ["point1", "point2", "point3"],
   "dependencies": ["pandas", "matplotlib", "seaborn"],
   "usage": "how to use this code",
@@ -153,8 +258,9 @@ Format your response as JSON with:
 }
 
 CRITICAL: 
-- The "code" field must contain actual, complete Python code that can be executed WITHOUT external files
-- The "explanation" field must be a step-by-step, teacher-like explanation with numbered steps`;
+- The "code" field must contain CLEAN, executable Python code WITHOUT step-by-step teaching comments
+- The "explanation" field contains ALL the teaching content with numbered steps
+- When CSV is requested, ALWAYS include visualization code with plt.show()`;
 
     const completion = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
@@ -166,23 +272,129 @@ CRITICAL:
       temperature: 0.3,
     });
 
-    const response = completion.choices[0].message.content;
+    let response = completion.choices[0].message.content;
+    
+    // First, try to extract JSON from markdown code blocks
+    let jsonContent = response;
+    
+    // Check if response contains JSON in a code block
+    const jsonBlockMatch = response.match(/```json\s*([\s\S]*?)```/i);
+    if (jsonBlockMatch) {
+      jsonContent = jsonBlockMatch[1].trim();
+    } else {
+      // Strip markdown code blocks if present
+      jsonContent = response.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+    }
     
     // Try to parse JSON response, fallback to text
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(response);
+      parsedResponse = JSON.parse(jsonContent);
+      
+      // Ensure code field contains only the code, not the entire JSON or markdown
+      if (parsedResponse.code && typeof parsedResponse.code === 'string') {
+        // Remove any markdown code blocks from the code field
+        let cleanCode = parsedResponse.code
+          .replace(/^```python\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/```\s*$/i, '')
+          .trim();
+        
+        // Remove any JSON code blocks that might be embedded
+        cleanCode = cleanCode.replace(/```json\s*[\s\S]*?```/gi, '');
+        cleanCode = cleanCode.replace(/```\s*[\s\S]*?```/g, '');
+        
+        // Remove any JSON object that might be in the code
+        if (cleanCode.includes('"explanation"') || cleanCode.includes('"learningPoints"')) {
+          // This looks like JSON, try to extract just the code part
+          const codeMatch = cleanCode.match(/```python\s*([\s\S]*?)```/i);
+          if (codeMatch) {
+            cleanCode = codeMatch[1].trim();
+          } else {
+            // Try to find where the actual code starts (before any JSON)
+            const codeStart = cleanCode.search(/(?:^|\n)(import |from |def |# |[a-zA-Z_])/);
+            if (codeStart > 0) {
+              cleanCode = cleanCode.substring(codeStart).trim();
+            }
+          }
+        }
+        
+        parsedResponse.code = cleanCode;
+      }
     } catch {
-      parsedResponse = {
-        code: response,
-        explanation: "Generated code with educational context",
-        learningPoints: ["Review the code structure", "Understand the implementation", "Practice with variations"],
-        dependencies: [],
-        usage: "Use this code as a starting point for your project",
-        nextSteps: "Experiment with the code and try modifications"
-      };
+      // If parsing fails, check if the entire response is code
+      if (response.includes('import ') || response.includes('def ') || response.includes('pd.')) {
+        // Extract just the code, removing any JSON or markdown blocks
+        let cleanCode = response
+          .replace(/```python\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/```\s*$/i, '')
+          .replace(/```json\s*[\s\S]*?```/gi, '')
+          .trim();
+        
+        parsedResponse = {
+          code: cleanCode,
+          explanation: "Generated code with educational context",
+          learningPoints: ["Review the code structure", "Understand the implementation", "Practice with variations"],
+          dependencies: [],
+          usage: "Use this code as a starting point for your project",
+          nextSteps: "Experiment with the code and try modifications"
+        };
+      } else {
+        parsedResponse = {
+          code: "",
+          explanation: response,
+          learningPoints: ["Review the code structure", "Understand the implementation", "Practice with variations"],
+          dependencies: [],
+          usage: "Use this code as a starting point for your project",
+          nextSteps: "Experiment with the code and try modifications"
+        };
+      }
     }
 
+    // Log what we're sending back
+    console.log('[Backend] ========== SENDING CODE GENERATION RESPONSE ==========');
+    console.log('[Backend] hasCode:', !!parsedResponse.code);
+    console.log('[Backend] codeLength:', parsedResponse.code?.length || 0);
+    console.log('[Backend] codePreview:', parsedResponse.code?.substring(0, 300) || 'EMPTY');
+    console.log('[Backend] hasExplanation:', !!parsedResponse.explanation);
+    console.log('[Backend] explanationLength:', parsedResponse.explanation?.length || 0);
+    
+    // CRITICAL: Ensure code is never empty if we have an explanation
+    if (!parsedResponse.code || parsedResponse.code.trim().length < 10) {
+      console.error('[Backend] ❌❌❌ CODE IS EMPTY OR TOO SHORT! ❌❌❌');
+      console.error('[Backend] parsedResponse.code:', parsedResponse.code);
+      console.error('[Backend] Original response from OpenAI:', response?.substring(0, 500));
+      
+      // Try to extract code from the original response if parsing failed
+      if (response && response.length > 50) {
+        // Look for Python code in the response
+        const pythonCodeMatch = response.match(/```python\s*([\s\S]*?)```/i);
+        if (pythonCodeMatch && pythonCodeMatch[1]) {
+          parsedResponse.code = pythonCodeMatch[1].trim();
+          console.log('[Backend] ✅ Extracted code from original response markdown block');
+        } else {
+          // Look for code without markdown
+          const codeStart = response.search(/(?:^|\n)(import\s+(pandas|numpy|matplotlib|seaborn))/i);
+          if (codeStart >= 0) {
+            let codeChunk = response.substring(codeStart);
+            // Find reasonable end
+            const endMatch = codeChunk.match(/(plt\.show\(\)|data\.to_csv\([^)]+\))[\s\S]{0,200}/i);
+            if (endMatch) {
+              codeChunk = codeChunk.substring(0, codeChunk.indexOf(endMatch[0]) + endMatch[0].length);
+            }
+            if (codeChunk.length > 50) {
+              parsedResponse.code = codeChunk.trim();
+              console.log('[Backend] ✅ Extracted code from original response');
+            }
+          }
+        }
+      }
+    }
+    
+    console.log('[Backend] FINAL codeLength:', parsedResponse.code?.length || 0);
+    console.log('[Backend] ======================================================');
+    
     res.json({
       id: uuidv4(),
       ...parsedResponse,
@@ -207,7 +419,7 @@ router.post('/build-project', async (req, res) => {
       return res.status(400).json({ error: 'Project type and description are required' });
     }
 
-    const systemPrompt = `You are an expert project architect for DataAIFair IDE. Create a step-by-step project building plan with educational focus.
+    const systemPrompt = `You are an expert project architect for Coco. Create a step-by-step project building plan with educational focus.
 
 Project: ${projectType} - ${description}
 User Level: ${userLevel}
@@ -304,6 +516,16 @@ router.post('/generate-code-from-csv', async (req, res) => {
       return res.status(400).json({ error: 'Description and CSV data are required' });
     }
 
+    // Get all available files from file storage (including other files besides the current CSV)
+    const availableFiles = await getAvailableFiles();
+    const otherFiles = availableFiles.filter(f => {
+      const fName = f.original_name || f.filename || f.name || String(f);
+      return fName !== fileName;
+    });
+    const otherFilesContext = otherFiles.length > 0
+      ? `\n\nOTHER AVAILABLE FILES:\nYou also have access to these other files in the working directory: ${otherFiles.map(f => f.original_name || f.filename || f.name || String(f)).join(', ')}. You can use them in your analysis if relevant. Files are accessible directly by their filename.`
+      : '';
+
     // Escape the CSV data for embedding in Python triple-quoted strings
     // Replace backslashes and triple quotes to avoid breaking the string
     const escapedCsvData = csvData
@@ -312,7 +534,21 @@ router.post('/generate-code-from-csv', async (req, res) => {
     const headers = csvHeaders || [];
     const sampleRows = csvPreview || [];
 
-    const systemPrompt = `You are an expert Python data science teacher for DataAIFair IDE. Generate complete, runnable Python code to analyze and visualize data from a CSV file.
+    // Include full CSV data in context, but limit size to avoid token limits
+    // For very large files, include first 1000 lines + last 100 lines to show structure
+    let csvContextData = csvData;
+    const csvLines = csvData.split('\n');
+    const maxLines = 2000; // Reasonable limit for context
+    
+    if (csvLines.length > maxLines) {
+      // For large files, include header + first 1000 rows + last 100 rows
+      const headerLine = csvLines[0];
+      const firstRows = csvLines.slice(1, 1001).join('\n');
+      const lastRows = csvLines.slice(-100).join('\n');
+      csvContextData = `${headerLine}\n${firstRows}\n\n... (${csvLines.length - 1101} rows omitted) ...\n\n${lastRows}`;
+    }
+
+    const systemPrompt = `You are an expert Python data science teacher for Coco. Generate complete, runnable Python code to analyze and visualize data from a CSV file.
 
 IMPORTANT RULES:
 1. The user has uploaded a CSV file named "${fileName}" with the following columns: ${headers.join(', ')}
@@ -326,11 +562,19 @@ IMPORTANT RULES:
    - Includes plt.show() to display plots
 5. Make the code educational with step-by-step comments
 6. Choose appropriate visualization types based on the data (line plots for time series, bar charts for categories, scatter plots for relationships, etc.)
+7. Use the FULL CSV data provided below to understand the data patterns, distributions, and relationships
 
 CSV File Information:
 - File name: ${fileName}
-- Columns: ${headers.join(', ')}
-- Sample data (first few rows):
+- Total rows: ${csvLines.length}
+- Columns: ${headers.join(', ')}${otherFilesContext}
+
+FULL CSV DATA (for complete context):
+\`\`\`
+${csvContextData}
+\`\`\`
+
+Sample preview (first few rows):
 ${JSON.stringify(sampleRows, null, 2)}
 
 TEACHING STYLE - Explain like a teacher:
@@ -340,12 +584,11 @@ TEACHING STYLE - Explain like a teacher:
 - Explain WHY we do each step, not just WHAT it does
 - Use simple language and analogies when helpful
 - Show the progression: how each step builds on the previous one
-- End with a summary: "To summarize, we've learned..."
 
 Format your response as JSON with:
 {
   "code": "the complete, runnable Python code that: 1) saves the CSV data to a file, 2) loads it with pd.read_csv(), and 3) creates visualizations. Include the CSV data as a multi-line string variable at the start.",
-  "explanation": "STEP-BY-STEP teacher-like explanation. Start with an overview, then break into numbered steps (Step 1, Step 2, etc.), explain each step in detail, and end with a summary. Be conversational and educational.",
+  "explanation": "STEP-BY-STEP teacher-like explanation. Start with an overview, then break into numbered steps (Step 1, Step 2, etc.), explain each step in detail. Be conversational and educational.",
   "learningPoints": ["point1", "point2", "point3"],
   "dependencies": ["pandas", "matplotlib", "seaborn"],
   "usage": "how to use this code",
@@ -359,15 +602,22 @@ CRITICAL:
 
     const userPrompt = `Generate Python code to ${description} using the CSV file "${fileName}".
 
-The CSV file has these columns: ${headers.join(', ')}.
+The CSV file has these columns: ${headers.join(', ')} and contains ${csvLines.length} total rows.
 
 IMPORTANT: The CSV file "${fileName}" is already uploaded and stored in the file storage system. Your code should:
 1. Directly load the CSV file using pd.read_csv('${fileName}') - it's already in the working directory
-2. Explore the data structure
-3. Create appropriate visualizations
-4. Provide insights about the data
+2. Explore the data structure (use head(), info(), describe() to understand the data)
+3. Create appropriate visualizations based on the FULL data patterns you see in the CSV content above
+4. Provide insights about the data based on what you observe in the complete dataset
 
 The file is accessible in the current working directory, so you can use pd.read_csv('${fileName}') directly.
+
+You have been provided with the FULL CSV data content above - use this to understand:
+- Data types and formats
+- Value ranges and distributions
+- Relationships between columns
+- Patterns and trends in the data
+- Appropriate visualization choices
 
 Make it educational and step-by-step.`;
 
@@ -381,12 +631,55 @@ Make it educational and step-by-step.`;
       temperature: 0.3,
     });
 
-    const response = completion.choices[0].message.content;
+    let response = completion.choices[0].message.content;
+    
+    // First, try to extract JSON from markdown code blocks
+    let jsonContent = response;
+    
+    // Check if response contains JSON in a code block
+    const jsonBlockMatch = response.match(/```json\s*([\s\S]*?)```/i);
+    if (jsonBlockMatch) {
+      jsonContent = jsonBlockMatch[1].trim();
+    } else {
+      // Strip markdown code blocks if present
+      jsonContent = response.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+    }
     
     // Try to parse JSON response, fallback to text
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(response);
+      parsedResponse = JSON.parse(jsonContent);
+      
+      // Ensure code field contains only the code, not the entire JSON or markdown
+      if (parsedResponse.code && typeof parsedResponse.code === 'string') {
+        // Remove any markdown code blocks from the code field
+        let cleanCode = parsedResponse.code
+          .replace(/^```python\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/```\s*$/i, '')
+          .trim();
+        
+        // Remove any JSON code blocks that might be embedded
+        cleanCode = cleanCode.replace(/```json\s*[\s\S]*?```/gi, '');
+        cleanCode = cleanCode.replace(/```\s*[\s\S]*?```/g, '');
+        
+        // Remove any JSON object that might be in the code
+        if (cleanCode.includes('"explanation"') || cleanCode.includes('"learningPoints"')) {
+          // This looks like JSON, try to extract just the code part
+          const codeMatch = cleanCode.match(/```python\s*([\s\S]*?)```/i);
+          if (codeMatch) {
+            cleanCode = codeMatch[1].trim();
+          } else {
+            // Try to find where the actual code starts (before any JSON)
+            const codeStart = cleanCode.search(/(?:^|\n)(import |from |def |# |[a-zA-Z_])/);
+            if (codeStart > 0) {
+              cleanCode = cleanCode.substring(codeStart).trim();
+            }
+          }
+        }
+        
+        parsedResponse.code = cleanCode;
+      }
     } catch {
       parsedResponse = {
         code: response,
@@ -397,6 +690,13 @@ Make it educational and step-by-step.`;
         nextSteps: "Try modifying the visualizations or adding more analysis"
       };
     }
+    
+    // Log what we're sending back
+    console.log('[Backend] ========== CSV CODE GENERATION RESPONSE ==========');
+    console.log('[Backend] hasCode:', !!parsedResponse.code);
+    console.log('[Backend] codeLength:', parsedResponse.code?.length || 0);
+    console.log('[Backend] codePreview:', parsedResponse.code?.substring(0, 300) || 'EMPTY');
+    console.log('[Backend] =================================================');
 
     // Note: CSV file is already stored in file storage, so code can use pd.read_csv() directly
     // No need to prepend CSV data - the file is accessible in the working directory
@@ -425,59 +725,68 @@ router.post('/generate-questions', async (req, res) => {
       return res.status(400).json({ error: 'Code is required' });
     }
 
-    const systemPrompt = `You are an expert coding educator and codebase analyst. Generate 2 specific, educational questions that help students understand how this code fits into the larger codebase and data science ecosystem.
+    const systemPrompt = `Generate 2-3 MICRO questions (3-5 words MAX) that test understanding of THIS EXACT code.
 
-The questions should:
-1. Focus on codebase understanding - how this code relates to the project structure, dependencies, and patterns
-2. Be specific to THIS exact code and the libraries/frameworks it uses
-3. Test understanding of how this code would interact with other parts of a data science project
-4. Encourage critical thinking about codebase architecture and design decisions
-5. Reference specific libraries, patterns, or concepts that are part of the data science stack (pandas, matplotlib, seaborn, numpy, etc.)
-6. Ask about the "why" behind architecture choices, not just "what" the code does
-7. Help students understand how this code fits into a larger data analysis workflow
+CRITICAL RULES:
+1. **3-5 WORDS MAX** - Shorter is better. Think: "What does X do?" (4 words), "Why use Y?" (3 words)
+2. **REFERENCE ACTUAL CODE** - Use exact variable names, function names, or operations from the code
+3. **TEST UNDERSTANDING** - Ask about what the code DOES, not theory
+4. **NO FILLER WORDS** - Cut "in this code", "for this", "here" - just the question
 
-Examples of good codebase-focused questions:
-- "Why do we import pandas at the top of the file, and how does this relate to the module system in Python?"
-- "How would this DataFrame creation pattern scale if you had real-world data from a CSV file instead of a dictionary?"
-- "What other parts of a data analysis project would typically come before creating this visualization?"
-- "How does matplotlib's backend system work, and why does this affect how we display plots in this environment?"
+FORMATS (pick one per question):
+- "What does [exact_variable] do?" (4 words)
+- "Why [exact_function]?" (2 words)
+- "What if [remove/change X]?" (3 words)
+- "Which line [does Y]?" (3 words)
 
-Respond with a JSON object with a "questions" array containing exactly 2 questions. Format: {"questions": ["question1", "question2"]}`;
+EXAMPLES:
+Code: \`data = pd.DataFrame({'x': [1,2,3]})\`
+Good: "What does DataFrame do?" (4 words)
+Bad: "What does the DataFrame function do in this code?" (9 words)
+
+Code: \`plt.figure(figsize=(10, 6))\`
+Good: "Why figsize?" (2 words)
+Bad: "Why did we use figsize parameter in plt.figure?" (9 words)
+
+Code: \`data.to_csv('file.csv')\`
+Good: "What does to_csv do?" (4 words)
+Bad: "What is the purpose of the to_csv method?" (8 words)
+
+Look at the ACTUAL code provided. Find specific variables/functions. Ask about THOSE.
+
+Respond with JSON: {"questions": ["q1", "q2", "q3"]} - each 3-5 words, referencing actual code elements.`;
 
     const userPrompt = `Code:
 \`\`\`python
 ${code}
 \`\`\`
 
-Explanation: ${explanation || 'No explanation provided'}
+Generate 2-3 MICRO questions (3-5 words each) about THIS code.
 
-User's request: ${userMessage || 'No context provided'}
+INSTRUCTIONS:
+1. Scan the code for actual variable names, function calls, and operations
+2. Pick 2-3 specific elements (e.g., "pd.DataFrame", "plt.show()", "data.to_csv()")
+3. Ask ultra-short questions about those EXACT elements
+4. Each question must be 3-5 words MAX
 
-Codebase Context:
-This is a DataAIFair IDE - a Jupyter-style notebook environment for data science learning. The project structure includes:
-- Backend: FastAPI server (main.py) handling code execution via Jupyter kernels
-- Frontend: React/TypeScript notebook interface with Monaco editor
-- Kernel Manager: Manages Python kernels, captures output, plots, and variables
-- Key libraries used: pandas, numpy, matplotlib, seaborn, plotly
-- The system uses Jupyter kernels (via jupyter_client) to execute Python code
-- Plots are captured and displayed via IPython.display system
-- Variables are tracked through the kernel's execution state
+EXAMPLES FROM CODE:
+- If code has "pd.DataFrame" → "What does DataFrame do?" (4 words)
+- If code has "plt.figure(figsize=...)" → "Why figsize?" (2 words)  
+- If code has "data.to_csv()" → "What does to_csv do?" (4 words)
+- If code has "sns.histplot" → "Why histplot?" (2 words)
 
-Generate 2 specific questions about how this code fits into THIS codebase and data science ecosystem. Focus on:
-- How this code interacts with the kernel execution system
-- Why certain library choices were made (pandas vs numpy, seaborn vs matplotlib)
-- How this code would fit into a larger data analysis workflow
-- Architecture decisions: why plots need special handling, how variables are tracked
-- Project organization: how this notebook code relates to backend execution
-- Data science best practices: when to use each library, workflow patterns
+DO NOT:
+- Ask generic questions like "What does this code do?"
+- Use more than 5 words
+- Ask about concepts not in the code
+- Add filler words
 
-Make questions specific to THIS code and THIS codebase structure. Ask about:
-- The "why" behind library choices and patterns
-- How this code would scale in a real project
-- Integration points with the execution system
-- Architecture and design decisions
+DO:
+- Reference exact code elements
+- Keep it 3-5 words
+- Make it test understanding of what's actually in the code
 
-Return as JSON: {"questions": ["question1", "question2"]}`;
+Return JSON: {"questions": ["q1", "q2", "q3"]}`;
 
     const completion = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
@@ -485,7 +794,7 @@ Return as JSON: {"questions": ["question1", "question2"]}`;
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      max_tokens: 300,
+      max_tokens: 100,
       temperature: 0.7,
       response_format: { type: "json_object" }
     });
@@ -497,12 +806,34 @@ Return as JSON: {"questions": ["question1", "question2"]}`;
       const parsed = JSON.parse(response);
       
       // Handle different possible JSON structures
+      let questions = [];
       if (Array.isArray(parsed)) {
-        return res.json({ questions: parsed.slice(0, 2) });
+        questions = parsed;
       } else if (parsed.questions && Array.isArray(parsed.questions)) {
-        return res.json({ questions: parsed.questions.slice(0, 2) });
+        questions = parsed.questions;
       } else if (parsed.question1 && parsed.question2) {
-        return res.json({ questions: [parsed.question1, parsed.question2] });
+        questions = [parsed.question1, parsed.question2];
+        if (parsed.question3) questions.push(parsed.question3);
+      }
+      
+      // Validate and filter questions: must be 2-5 words and reference code
+      const validatedQuestions = questions
+        .filter(q => {
+          if (!q || typeof q !== 'string') return false;
+          const wordCount = q.trim().split(/\s+/).length;
+          // Must be 2-5 words
+          if (wordCount < 2 || wordCount > 5) return false;
+          // Must not be generic (no "this code", "the code", etc.)
+          const lowerQ = q.toLowerCase();
+          if (lowerQ.includes('this code') || lowerQ.includes('the code') || lowerQ.includes('what does this')) {
+            return false;
+          }
+          return true;
+        })
+        .slice(0, 3);
+      
+      if (validatedQuestions.length > 0) {
+        return res.json({ questions: validatedQuestions });
       }
     } catch (parseError) {
       // If JSON parsing fails, try to extract from text
@@ -510,25 +841,45 @@ Return as JSON: {"questions": ["question1", "question2"]}`;
       if (arrayMatch) {
         return res.json({ questions: [arrayMatch[1], arrayMatch[2]] });
       }
+      
+      // Try to extract questions from markdown list format
+      const questionMatches = response.match(/\d+\.\s*"([^"]+)"/g);
+      if (questionMatches && questionMatches.length >= 2) {
+        const extractedQuestions = questionMatches.map(match => 
+          match.replace(/\d+\.\s*"/, '').replace(/"$/, '')
+        );
+        return res.json({ questions: extractedQuestions.slice(0, 3) });
+      }
+      
+      // Last resort: try to find any quoted strings (but filter for short questions 3-30 words)
+      const quotedMatches = response.match(/"([^"]{3,50})"/g);
+      if (quotedMatches && quotedMatches.length >= 2) {
+        const extractedQuestions = quotedMatches
+          .map(match => match.replace(/^"/, '').replace(/"$/, ''))
+          .filter(q => {
+            const wordCount = q.split(/\s+/).length;
+            return wordCount >= 2 && wordCount <= 5; // 2-5 words only
+          });
+        if (extractedQuestions.length >= 2) {
+          return res.json({ questions: extractedQuestions.slice(0, 3) });
+        }
+      }
     }
 
-    // Fallback: return generic questions
-    res.json({
-      questions: [
-        "Can you explain what this code does in your own words?",
-        "What would happen if you modified one part of this code?"
-      ]
+    // If we get here, LLM response was not parseable
+    console.error('[Backend] Failed to parse LLM response for questions:', response?.substring(0, 200));
+    res.status(500).json({ 
+      error: 'Failed to generate dynamic questions',
+      message: 'LLM response could not be parsed into questions',
+      questions: [] // Return empty array instead of hardcoded questions
     });
 
   } catch (error) {
-    console.error('Question generation error:', error);
+    console.error('[Backend] Question generation error:', error);
     res.status(500).json({ 
       error: 'Failed to generate questions',
       message: error.message,
-      questions: [
-        "Can you explain what this code does in your own words?",
-        "What would happen if you modified one part of this code?"
-      ]
+      questions: [] // Return empty array - frontend will handle gracefully
     });
   }
 });

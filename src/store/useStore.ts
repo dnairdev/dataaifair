@@ -45,6 +45,9 @@ interface AppState {
   userUseCase: string | null;
   hasCompletedOnboarding: boolean;
   
+  // Notebook state
+  notebookVariables: VariableSnapshot[];
+  
   // Actions
   setActiveFile: (fileId: string) => void;
   updateFileContent: (fileId: string, content: string) => void;
@@ -74,6 +77,7 @@ interface AppState {
   setUserUseCase: (useCase: string) => void;
   completeOnboarding: () => void;
   resetOnboarding: () => void;
+  setNotebookVariables: (variables: VariableSnapshot[]) => void;
 }
 
 const initialUserProgress: UserProgress = {
@@ -128,6 +132,7 @@ export const useStore = create<AppState>()(
       notifications: [],
       userUseCase: null,
       hasCompletedOnboarding: false,
+      notebookVariables: [],
 
       // File actions
       setActiveFile: (fileId: string) => {
@@ -407,6 +412,10 @@ export const useStore = create<AppState>()(
 
       resetOnboarding: () => {
         set({ hasCompletedOnboarding: false, userUseCase: null });
+      },
+
+      setNotebookVariables: (variables) => {
+        set({ notebookVariables: variables });
       }
     }),
     {

@@ -1,337 +1,218 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  GraduationCap, 
-  Briefcase, 
-  Code, 
-  Building2,
-  Heart,
-  Rocket,
-  ArrowRight,
+  Brain, 
+  Target, 
+  BookOpen,
+  Lightbulb,
+  Zap,
+  Code,
+  Users,
   Sparkles
 } from 'lucide-react';
 
-interface UseCaseCategory {
-  id: string;
-  name: string;
-  emoji: string;
-  icon: React.ElementType;
-  color: string;
-  gradient: string;
-  options: {
-    id: string;
-    label: string;
-    emoji: string;
-    description: string;
-    recommendedProjects?: string[];
-  }[];
-}
-
 const LandingPage: React.FC<{ onComplete: (useCase: string) => void }> = ({ onComplete }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedUseCase, setSelectedUseCase] = useState<string | null>(null);
-
-  const categories: UseCaseCategory[] = [
-    {
-      id: 'school',
-      name: 'School & Education',
-      emoji: '🎓',
-      icon: GraduationCap,
-      color: 'blue',
-      gradient: 'from-blue-500 to-blue-600',
-      options: [
-        {
-          id: 'student-learning',
-          label: 'Student Learning Programming',
-          emoji: '📚',
-          description: 'Learning to code for courses, assignments, and personal projects',
-          recommendedProjects: ['todo-app', 'weather-app', 'rest-api']
-        },
-        {
-          id: 'cs-major',
-          label: 'Computer Science Student',
-          emoji: '💻',
-          description: 'Building projects for coursework and portfolio development',
-          recommendedProjects: ['rest-api', 'database-app', 'auth-system']
-        },
-        {
-          id: 'teacher',
-          label: 'Educator / Teacher',
-          emoji: '👨‍🏫',
-          description: 'Teaching programming concepts and creating learning materials',
-          recommendedProjects: ['todo-app', 'cli-tool', 'file-processor']
-        }
-      ]
-    },
-    {
-      id: 'profession',
-      name: 'Professional Development',
-      emoji: '💼',
-      icon: Briefcase,
-      color: 'purple',
-      gradient: 'from-purple-500 to-purple-600',
-      options: [
-        {
-          id: 'career-switch',
-          label: 'Career Switch to Tech',
-          emoji: '🔄',
-          description: 'Transitioning into software development from another field',
-          recommendedProjects: ['todo-app', 'rest-api', 'ecommerce']
-        },
-        {
-          id: 'skill-upgrade',
-          label: 'Upskilling / Skill Upgrade',
-          emoji: '📈',
-          description: 'Learning new technologies and frameworks for your current role',
-          recommendedProjects: ['graphql-api', 'microservices', 'real-time-chat']
-        },
-        {
-          id: 'portfolio',
-          label: 'Building Portfolio',
-          emoji: '🎨',
-          description: 'Creating projects to showcase your skills to employers',
-          recommendedProjects: ['ecommerce', 'data-visualization', 'analytics-platform']
-        }
-      ]
-    },
-    {
-      id: 'industry',
-      name: 'Industry & Business',
-      emoji: '🏢',
-      icon: Building2,
-      color: 'indigo',
-      gradient: 'from-indigo-500 to-indigo-600',
-      options: [
-        {
-          id: 'startup',
-          label: 'Startup / Entrepreneur',
-          emoji: '🚀',
-          description: 'Building products and MVPs for your business',
-          recommendedProjects: ['ecommerce', 'rest-api', 'analytics-platform']
-        },
-        {
-          id: 'enterprise',
-          label: 'Enterprise Developer',
-          emoji: '🏗️',
-          description: 'Building scalable, production-ready applications',
-          recommendedProjects: ['microservices', 'api-gateway', 'monitoring-tool']
-        },
-        {
-          id: 'freelance',
-          label: 'Freelance Developer',
-          emoji: '💻',
-          description: 'Creating client projects and building your services',
-          recommendedProjects: ['ecommerce', 'rest-api', 'webhook-service']
-        }
-      ]
-    },
-    {
-      id: 'hobby',
-      name: 'Hobby & Personal',
-      emoji: '❤️',
-      icon: Heart,
-      color: 'pink',
-      gradient: 'from-pink-500 to-pink-600',
-      options: [
-        {
-          id: 'personal-project',
-          label: 'Personal Project',
-          emoji: '✨',
-          description: 'Building something for fun or to solve a personal problem',
-          recommendedProjects: ['todo-app', 'file-processor', 'cli-tool']
-        },
-        {
-          id: 'open-source',
-          label: 'Open Source Contributor',
-          emoji: '🌐',
-          description: 'Contributing to open source projects and building tools',
-          recommendedProjects: ['testing-framework', 'code-generator', 'cli-tool']
-        },
-        {
-          id: 'automation',
-          label: 'Automation & Scripts',
-          emoji: '⚙️',
-          description: 'Creating tools and scripts to automate tasks',
-          recommendedProjects: ['cli-tool', 'file-processor', 'devops-tool']
-        }
-      ]
-    },
-    {
-      id: 'advanced',
-      name: 'Advanced Topics',
-      emoji: '🚀',
-      icon: Rocket,
-      color: 'orange',
-      gradient: 'from-orange-500 to-orange-600',
-      options: [
-        {
-          id: 'system-design',
-          label: 'System Design & Architecture',
-          emoji: '🏛️',
-          description: 'Learning distributed systems and architectural patterns',
-          recommendedProjects: ['microservices', 'api-gateway', 'task-queue']
-        },
-        {
-          id: 'devops',
-          label: 'DevOps & Infrastructure',
-          emoji: '🔧',
-          description: 'Building deployment and infrastructure automation tools',
-          recommendedProjects: ['devops-tool', 'monitoring-tool', 'webhook-service']
-        },
-        {
-          id: 'performance',
-          label: 'Performance & Optimization',
-          emoji: '⚡',
-          description: 'Building high-performance applications and tools',
-          recommendedProjects: ['cache-layer', 'search-engine', 'api-gateway']
-        }
-      ]
-    }
-  ];
-
-  const handleCategorySelect = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-    setSelectedUseCase(null);
-  };
-
-  const handleUseCaseSelect = (useCaseId: string) => {
-    setSelectedUseCase(useCaseId);
-  };
-
-  const handleContinue = () => {
-    if (selectedUseCase) {
-      onComplete(selectedUseCase);
-    }
-  };
-
-  const selectedCategoryData = categories.find(cat => cat.id === selectedCategory);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        {!selectedCategory ? (
-          // Category Selection
-            <div className="text-center mb-12">
-              {/* Single Logo */}
-              <div className="mb-8 flex justify-center">
-                <div className="w-24 h-24 rounded-lg bg-black flex items-center justify-center">
-                  <div className="text-4xl text-white">🥥</div>
-                </div>
-              </div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                What are you coding for?
-              </h2>
-              <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-                We'll personalize your experience based on your goals and help you build projects that matter to you.
-              </p>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categories.map((category) => {
-                const Icon = category.icon;
-                return (
-                  <button
-                    key={category.id}
-                    onClick={() => handleCategorySelect(category.id)}
-                    className="group p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-gray-900 transition-all text-left hover:shadow-lg"
-                  >
-                    <div className="mb-4">
-                      <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Icon className="w-6 h-6 text-white" />
-                      </div>
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {category.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {category.options.length} use cases
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <div className="w-32 h-32 mx-auto mb-8 flex items-center justify-center text-9xl">
+            🥥
           </div>
-        ) : (
-          // Use Case Selection
-          <div>
-            <button
-              onClick={() => {
-                setSelectedCategory(null);
-                setSelectedUseCase(null);
-              }}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-            >
-              <ArrowRight className="w-4 h-4 rotate-180" />
-              <span className="text-sm font-medium">Back to categories</span>
-            </button>
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            Cocode
+          </h1>
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Your Specialized Data Science Teaching Assistant
+          </h2>
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            Cocode is a specialized teaching assistant for data science tasks that teaches while improving efficiency. 
+            Learn data science concepts step-by-step as you build real projects, with AI guidance that explains the "why" behind every line of code.
+          </p>
+        </div>
 
-            <div className="mb-8">
-              <div className="flex items-center space-x-3 mb-4">
-                {selectedCategoryData && (
-                  <>
-                    <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center">
-                      {React.createElement(selectedCategoryData.icon, { className: "w-5 h-5 text-white" })}
-                    </div>
-                    <h2 className="text-3xl font-bold text-gray-900">
-                      {selectedCategoryData.name}
-                    </h2>
-                  </>
-                )}
-              </div>
-              <p className="text-lg text-gray-600">
-                Select your specific use case:
-              </p>
+        {/* What Cocode Does */}
+        <div className="mb-16">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-black dark:bg-white rounded-lg">
+              <Brain className="w-6 h-6 text-white dark:text-black" />
             </div>
-
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              {selectedCategoryData?.options.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => handleUseCaseSelect(option.id)}
-                  className={`p-6 rounded-xl border-2 text-left transition-all ${
-                    selectedUseCase === option.id
-                      ? 'border-gray-900 bg-gray-50 shadow-lg'
-                      : 'border-gray-200 hover:border-gray-400 bg-white'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {option.label}
-                    </h3>
-                    {selectedUseCase === option.id && (
-                      <div className="w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
-                        <div className="w-2 h-2 rounded-full bg-white"></div>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {option.description}
-                  </p>
-                </button>
-              ))}
-            </div>
-
-            {selectedUseCase && (
-              <div className="mt-12 p-8 bg-gray-50 rounded-xl border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
-                  <Sparkles className="w-5 h-5 text-gray-900" />
-                  <span>Recommended for you</span>
-                </h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Based on your selection, we'll personalize your Cocode experience with relevant projects and learning paths.
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">What Cocode Does</h3>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border-2 border-black dark:border-white mb-6">
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
+              Cocode is a <strong className="text-black dark:text-white">specialized teaching assistant for data science tasks</strong> that combines 
+              powerful AI assistance with educational guidance. Unlike generic coding assistants, Cocode is designed specifically 
+              for data science workflows, helping you learn pandas, matplotlib, seaborn, numpy, and more while you work.
+            </p>
+            <div className="grid md:grid-cols-2 gap-4 mt-6">
+              <div className="p-4 bg-white dark:bg-black rounded-lg border-2 border-black dark:border-white">
+                <h4 className="font-semibold text-black dark:text-white mb-2">Teaches While You Work</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Every code generation comes with step-by-step explanations that break down data science concepts, 
+                  helping you understand not just what the code does, but why it works.
                 </p>
-                <div className="flex justify-center">
-                  <button
-                    onClick={handleContinue}
-                    className="px-8 py-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold text-lg flex items-center space-x-2 shadow-lg"
-                  >
-                    <span>Continue to Cocode</span>
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
+              </div>
+              <div className="p-4 bg-white dark:bg-black rounded-lg border-2 border-black dark:border-white">
+                <h4 className="font-semibold text-black dark:text-white mb-2">Improves Efficiency</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Generate data visualizations, analyze datasets, and create data pipelines faster while learning. 
+                  Cocode helps you work smarter, not harder, by automating repetitive tasks and providing intelligent suggestions.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Key Features */}
+        <div className="mb-16">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-black dark:bg-white rounded-lg">
+              <Lightbulb className="w-6 h-6 text-white dark:text-black" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Key Features</h3>
+          </div>
+          <div className="space-y-6">
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-start space-x-4">
+                <div className="p-2 bg-black dark:bg-white rounded-lg flex-shrink-0">
+                  <Brain className="w-5 h-5 text-white dark:text-black" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
+                    Teacher-Like Explanations
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                    Get step-by-step, teacher-like explanations for every code generation. Cocode breaks down data science 
+                    concepts into digestible steps, explaining the "why" behind pandas operations, matplotlib visualizations, 
+                    and data analysis techniques.
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-start space-x-4">
+                <div className="p-2 bg-black dark:bg-white rounded-lg flex-shrink-0">
+                  <Target className="w-5 h-5 text-white dark:text-black" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
+                    Data Science Specialized
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                    Built specifically for data science workflows. Generate code for data analysis, visualizations, 
+                    statistical modeling, and more. Upload CSV files, create plots, analyze datasets—all with 
+                    intelligent code generation that understands data science best practices.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-start space-x-4">
+                <div className="p-2 bg-black dark:bg-white rounded-lg flex-shrink-0">
+                  <Zap className="w-5 h-5 text-white dark:text-black" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
+                    Efficiency & Learning Combined
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                    Work faster while learning more. Cocode generates complete, runnable code for your data science tasks 
+                    while teaching you the concepts. No more switching between tutorials and your IDE—learn and build simultaneously.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Data Science Capabilities */}
+        <div className="mb-16">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-black dark:bg-white rounded-lg">
+              <Sparkles className="w-6 h-6 text-white dark:text-black" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Data Science Capabilities</h3>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-center space-x-3 mb-3">
+                <Code className="w-5 h-5 text-black dark:text-white" />
+                <h4 className="font-semibold text-black dark:text-white">Interactive Notebook</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Jupyter-style notebook environment with code cells, output display, and variable inspection. 
+                Run Python code, visualize data, and see results instantly.
+              </p>
+            </div>
+
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-center space-x-3 mb-3">
+                <BookOpen className="w-5 h-5 text-black dark:text-white" />
+                <h4 className="font-semibold text-black dark:text-white">CSV File Management</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Upload CSV files, generate data visualizations automatically, and export DataFrames. 
+                All files are managed in a centralized storage system.
+              </p>
+            </div>
+
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-center space-x-3 mb-3">
+                <Brain className="w-5 h-5 text-black dark:text-white" />
+                <h4 className="font-semibold text-black dark:text-white">AI-Powered Code Generation</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Chat with the AI assistant to generate data analysis code, create visualizations, 
+                and get explanations. Code is automatically inserted into your notebook.
+              </p>
+            </div>
+
+            <div className="p-6 bg-white dark:bg-black rounded-xl border-2 border-black dark:border-white">
+              <div className="flex items-center space-x-3 mb-3">
+                <Users className="w-5 h-5 text-black dark:text-white" />
+                <h4 className="font-semibold text-black dark:text-white">Guiding Questions</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Test your understanding with AI-generated questions about the codebase and data science concepts. 
+                Learn actively, not passively.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Mission Statement */}
+        <div className="bg-black dark:bg-white rounded-2xl p-8 border-2 border-black dark:border-white">
+          <div className="text-center">
+            <h3 className="text-2xl font-bold text-white dark:text-black mb-4">
+              Our Mission
+            </h3>
+            <p className="text-lg text-gray-200 dark:text-gray-800 leading-relaxed max-w-3xl mx-auto">
+              To be the specialized teaching assistant for data science that helps you learn while you work. 
+              Cocode combines the efficiency of AI-powered code generation with the depth of educational guidance, 
+              making data science accessible and understandable. We believe that the best way to learn data science 
+              is by doing—and Cocode makes that process faster, smarter, and more educational.
+            </p>
+          </div>
+        </div>
+
+        {/* Call to Action */}
+        <div className="mt-16 text-center">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Ready to start learning by building?
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => onComplete('data-science')}
+              className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors font-medium border-2 border-black dark:border-white"
+            >
+              Start Building
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
