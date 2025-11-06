@@ -8,6 +8,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Use GPT-4o (latest model) or fallback to GPT-4 Turbo
+// You can override this with OPENAI_MODEL environment variable
+const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
+
 // Chat endpoint for AI Assistant
 router.post('/chat', async (req, res) => {
   try {
@@ -18,27 +22,33 @@ router.post('/chat', async (req, res) => {
     }
 
     // Create educational prompt based on user level and context
-    const systemPrompt = `You are an expert coding mentor and AI assistant for DataAIFair IDE. Your role is to help developers learn while coding, not just provide answers.
+    const systemPrompt = `You are an expert coding teacher and mentor for DataAIFair IDE. Your role is to teach like a patient, thorough teacher who breaks down complex concepts into simple, digestible steps.
 
-Key principles:
-1. Always explain the "why" behind code decisions
-2. Provide educational context, not just solutions
-3. Encourage critical thinking and understanding
-4. Adapt explanations to the user's skill level (${userLevel})
-5. Focus on learning and skill development
-6. Ask follow-up questions to deepen understanding
+TEACHING STYLE - Be like a great teacher:
+1. **Step-by-step explanations**: Break down every concept into numbered steps (Step 1, Step 2, etc.)
+2. **Start with the basics**: Always explain what each part does before moving to the next
+3. **Use analogies**: Compare programming concepts to real-world examples when helpful
+4. **Show the "why"**: Explain not just what the code does, but WHY we write it this way
+5. **Build incrementally**: Start simple, then add complexity step by step
+6. **Check understanding**: Ask questions to ensure the student is following along
+7. **Be encouraging**: Use positive, supportive language like "Great question!" or "Let's break this down together"
+8. **Use clear structure**: Organize explanations with headers, bullet points, and clear sections
 
+EXPLANATION FORMAT:
+- Start with a brief overview of what we're learning
+- Break down the code/concept into numbered steps
+- Explain each step in detail before moving to the next
+- Use examples and analogies to clarify
+- Summarize key takeaways at the end
+- Suggest practice exercises or next steps
+
+User skill level: ${userLevel}
 Current context: ${context || 'General coding assistance'}
 
-Respond with:
-- Clear explanations of concepts
-- Code examples with detailed comments
-- Learning points and best practices
-- Questions to encourage deeper thinking
-- Suggestions for further exploration`;
+Remember: Teach like you're explaining to a student sitting next to you, not like you're writing documentation. Be conversational, clear, and thorough.`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-1106",
+      model: DEFAULT_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message }
@@ -80,30 +90,74 @@ router.post('/generate-code', async (req, res) => {
       return res.status(400).json({ error: 'Description is required' });
     }
 
-    const systemPrompt = `You are an expert code generator for DataAIFair IDE. Generate ${type} code in ${language} with educational explanations.
+    const systemPrompt = `You are an expert Python data science teacher for DataAIFair IDE. Generate complete, runnable ${type} code in ${language} with step-by-step, teacher-like explanations.
+
+IMPORTANT RULES:
+1. NEVER reference external files (CSV, JSON, etc.) that don't exist. Instead, generate sample data using:
+   - pandas: Create DataFrames from dictionaries or use pd.DataFrame()
+   - seaborn: Use sns.load_dataset() for sample datasets (tips, iris, flights, etc.)
+   - numpy: Generate random data with np.random
+   - Manual data creation: Use dictionaries or lists
+
+2. When the user asks for data analysis, visualizations, or data work, ALWAYS generate actual working code using libraries like pandas, matplotlib, seaborn, numpy.
+
+3. For any dataset requests (covid, sales, etc.), create sample data programmatically - DO NOT use pd.read_csv() unless the file is guaranteed to exist.
+
+TEACHING STYLE - Explain like a teacher:
+- Break down the explanation into clear, numbered steps
+- Start with an overview: "In this code, we're going to..."
+- Explain each section step-by-step: "Step 1: First, we import...", "Step 2: Next, we create...", etc.
+- Explain WHY we do each step, not just WHAT it does
+- Use simple language and analogies when helpful
+- Show the progression: how each step builds on the previous one
+- End with a summary: "To summarize, we've learned..."
 
 Requirements:
-- Generate clean, production-ready code
-- Include comprehensive comments explaining each part
-- Provide educational context for every concept
+- Generate complete, runnable code that can be executed immediately WITHOUT external files
+- Include all necessary imports (pandas, matplotlib, seaborn, numpy, etc.)
+- For data analysis requests, ALWAYS generate sample data programmatically or use built-in datasets
+- Include comprehensive comments in the code explaining each part
+- Provide step-by-step educational explanation that teaches the concepts
 - Include learning points and best practices
 - Show the "why" behind implementation decisions
 - Complexity level: ${complexity}
+- ALWAYS include code in the response - never just explain without code
 
 Context: ${context || 'No specific context provided'}
 
+For data visualization requests, generate complete code including:
+- Import statements
+- Sample data generation (NOT file loading) or use sns.load_dataset()
+- Plot creation with seaborn/matplotlib
+- plt.show() or display commands
+
+Example of good data generation:
+\`\`\`python
+# Generate sample data for COVID visualization
+dates = pd.date_range(start='2020-01-01', periods=100, freq='D')
+data = pd.DataFrame({
+    'date': dates,
+    'cases': np.random.randint(100, 1000, 100).cumsum(),
+    'deaths': np.random.randint(5, 50, 100).cumsum()
+})
+\`\`\`
+
 Format your response as JSON with:
 {
-  "code": "the generated code",
-  "explanation": "detailed explanation of the code",
+  "code": "the complete, runnable generated code with inline comments",
+  "explanation": "STEP-BY-STEP teacher-like explanation. Start with an overview, then break into numbered steps (Step 1, Step 2, etc.), explain each step in detail, and end with a summary. Be conversational and educational.",
   "learningPoints": ["point1", "point2", "point3"],
-  "dependencies": ["dep1", "dep2"],
+  "dependencies": ["pandas", "matplotlib", "seaborn"],
   "usage": "how to use this code",
   "nextSteps": "suggestions for further learning"
-}`;
+}
+
+CRITICAL: 
+- The "code" field must contain actual, complete Python code that can be executed WITHOUT external files
+- The "explanation" field must be a step-by-step, teacher-like explanation with numbered steps`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-1106",
+      model: DEFAULT_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Generate ${type} code for: ${description}` }
@@ -188,7 +242,7 @@ Format as JSON with:
 }`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-1106",
+      model: DEFAULT_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Create a project plan for: ${description}` }
@@ -241,6 +295,244 @@ Format as JSON with:
   }
 });
 
+// Code generation from CSV endpoint
+router.post('/generate-code-from-csv', async (req, res) => {
+  try {
+    const { description, fileName, csvData, csvHeaders, csvPreview, context } = req.body;
+
+    if (!description || !csvData) {
+      return res.status(400).json({ error: 'Description and CSV data are required' });
+    }
+
+    // Escape the CSV data for embedding in Python triple-quoted strings
+    // Replace backslashes and triple quotes to avoid breaking the string
+    const escapedCsvData = csvData
+      .replace(/\\/g, '\\\\')  // Escape backslashes
+      .replace(/"""/g, '\\"\\"\\"');  // Escape triple quotes
+    const headers = csvHeaders || [];
+    const sampleRows = csvPreview || [];
+
+    const systemPrompt = `You are an expert Python data science teacher for DataAIFair IDE. Generate complete, runnable Python code to analyze and visualize data from a CSV file.
+
+IMPORTANT RULES:
+1. The user has uploaded a CSV file named "${fileName}" with the following columns: ${headers.join(', ')}
+2. The CSV file is already stored in the file storage system and is accessible in the current working directory
+3. You can directly use pd.read_csv('${fileName}') - the file is already available in the working directory
+4. Generate code that:
+   - Loads the CSV file directly using pd.read_csv('${fileName}')
+   - Explores the data (head(), info(), describe())
+   - Creates appropriate visualizations based on the data structure
+   - Uses matplotlib/seaborn for plotting
+   - Includes plt.show() to display plots
+5. Make the code educational with step-by-step comments
+6. Choose appropriate visualization types based on the data (line plots for time series, bar charts for categories, scatter plots for relationships, etc.)
+
+CSV File Information:
+- File name: ${fileName}
+- Columns: ${headers.join(', ')}
+- Sample data (first few rows):
+${JSON.stringify(sampleRows, null, 2)}
+
+TEACHING STYLE - Explain like a teacher:
+- Break down the explanation into clear, numbered steps
+- Start with an overview: "In this code, we're going to..."
+- Explain each section step-by-step: "Step 1: First, we save the CSV data...", "Step 2: Next, we load it...", etc.
+- Explain WHY we do each step, not just WHAT it does
+- Use simple language and analogies when helpful
+- Show the progression: how each step builds on the previous one
+- End with a summary: "To summarize, we've learned..."
+
+Format your response as JSON with:
+{
+  "code": "the complete, runnable Python code that: 1) saves the CSV data to a file, 2) loads it with pd.read_csv(), and 3) creates visualizations. Include the CSV data as a multi-line string variable at the start.",
+  "explanation": "STEP-BY-STEP teacher-like explanation. Start with an overview, then break into numbered steps (Step 1, Step 2, etc.), explain each step in detail, and end with a summary. Be conversational and educational.",
+  "learningPoints": ["point1", "point2", "point3"],
+  "dependencies": ["pandas", "matplotlib", "seaborn"],
+  "usage": "how to use this code",
+  "nextSteps": "suggestions for further learning"
+}
+
+CRITICAL: 
+- The "code" field should directly use pd.read_csv('${fileName}') - the file is already in the working directory
+- DO NOT create the CSV file from a string - it's already stored and accessible
+- The "explanation" field must be a step-by-step, teacher-like explanation with numbered steps`;
+
+    const userPrompt = `Generate Python code to ${description} using the CSV file "${fileName}".
+
+The CSV file has these columns: ${headers.join(', ')}.
+
+IMPORTANT: The CSV file "${fileName}" is already uploaded and stored in the file storage system. Your code should:
+1. Directly load the CSV file using pd.read_csv('${fileName}') - it's already in the working directory
+2. Explore the data structure
+3. Create appropriate visualizations
+4. Provide insights about the data
+
+The file is accessible in the current working directory, so you can use pd.read_csv('${fileName}') directly.
+
+Make it educational and step-by-step.`;
+
+    const completion = await openai.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      max_tokens: 2500,
+      temperature: 0.3,
+    });
+
+    const response = completion.choices[0].message.content;
+    
+    // Try to parse JSON response, fallback to text
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(response);
+    } catch {
+      parsedResponse = {
+        code: response,
+        explanation: "Generated code to analyze and visualize the CSV data",
+        learningPoints: ["CSV file loading", "Data exploration", "Data visualization"],
+        dependencies: ["pandas", "matplotlib", "seaborn"],
+        usage: "Run this code to analyze your CSV file",
+        nextSteps: "Try modifying the visualizations or adding more analysis"
+      };
+    }
+
+    // Note: CSV file is already stored in file storage, so code can use pd.read_csv() directly
+    // No need to prepend CSV data - the file is accessible in the working directory
+
+    res.json({
+      id: uuidv4(),
+      ...parsedResponse,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('CSV code generation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate code from CSV',
+      message: error.message 
+    });
+  }
+});
+
+// Generate guiding questions endpoint
+router.post('/generate-questions', async (req, res) => {
+  try {
+    const { code, explanation, userMessage } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ error: 'Code is required' });
+    }
+
+    const systemPrompt = `You are an expert coding educator and codebase analyst. Generate 2 specific, educational questions that help students understand how this code fits into the larger codebase and data science ecosystem.
+
+The questions should:
+1. Focus on codebase understanding - how this code relates to the project structure, dependencies, and patterns
+2. Be specific to THIS exact code and the libraries/frameworks it uses
+3. Test understanding of how this code would interact with other parts of a data science project
+4. Encourage critical thinking about codebase architecture and design decisions
+5. Reference specific libraries, patterns, or concepts that are part of the data science stack (pandas, matplotlib, seaborn, numpy, etc.)
+6. Ask about the "why" behind architecture choices, not just "what" the code does
+7. Help students understand how this code fits into a larger data analysis workflow
+
+Examples of good codebase-focused questions:
+- "Why do we import pandas at the top of the file, and how does this relate to the module system in Python?"
+- "How would this DataFrame creation pattern scale if you had real-world data from a CSV file instead of a dictionary?"
+- "What other parts of a data analysis project would typically come before creating this visualization?"
+- "How does matplotlib's backend system work, and why does this affect how we display plots in this environment?"
+
+Respond with a JSON object with a "questions" array containing exactly 2 questions. Format: {"questions": ["question1", "question2"]}`;
+
+    const userPrompt = `Code:
+\`\`\`python
+${code}
+\`\`\`
+
+Explanation: ${explanation || 'No explanation provided'}
+
+User's request: ${userMessage || 'No context provided'}
+
+Codebase Context:
+This is a DataAIFair IDE - a Jupyter-style notebook environment for data science learning. The project structure includes:
+- Backend: FastAPI server (main.py) handling code execution via Jupyter kernels
+- Frontend: React/TypeScript notebook interface with Monaco editor
+- Kernel Manager: Manages Python kernels, captures output, plots, and variables
+- Key libraries used: pandas, numpy, matplotlib, seaborn, plotly
+- The system uses Jupyter kernels (via jupyter_client) to execute Python code
+- Plots are captured and displayed via IPython.display system
+- Variables are tracked through the kernel's execution state
+
+Generate 2 specific questions about how this code fits into THIS codebase and data science ecosystem. Focus on:
+- How this code interacts with the kernel execution system
+- Why certain library choices were made (pandas vs numpy, seaborn vs matplotlib)
+- How this code would fit into a larger data analysis workflow
+- Architecture decisions: why plots need special handling, how variables are tracked
+- Project organization: how this notebook code relates to backend execution
+- Data science best practices: when to use each library, workflow patterns
+
+Make questions specific to THIS code and THIS codebase structure. Ask about:
+- The "why" behind library choices and patterns
+- How this code would scale in a real project
+- Integration points with the execution system
+- Architecture and design decisions
+
+Return as JSON: {"questions": ["question1", "question2"]}`;
+
+    const completion = await openai.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      max_tokens: 300,
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    const response = completion.choices[0].message.content;
+    
+    try {
+      // Try to parse as JSON
+      const parsed = JSON.parse(response);
+      
+      // Handle different possible JSON structures
+      if (Array.isArray(parsed)) {
+        return res.json({ questions: parsed.slice(0, 2) });
+      } else if (parsed.questions && Array.isArray(parsed.questions)) {
+        return res.json({ questions: parsed.questions.slice(0, 2) });
+      } else if (parsed.question1 && parsed.question2) {
+        return res.json({ questions: [parsed.question1, parsed.question2] });
+      }
+    } catch (parseError) {
+      // If JSON parsing fails, try to extract from text
+      const arrayMatch = response.match(/\["([^"]+)",\s*"([^"]+)"\]/);
+      if (arrayMatch) {
+        return res.json({ questions: [arrayMatch[1], arrayMatch[2]] });
+      }
+    }
+
+    // Fallback: return generic questions
+    res.json({
+      questions: [
+        "Can you explain what this code does in your own words?",
+        "What would happen if you modified one part of this code?"
+      ]
+    });
+
+  } catch (error) {
+    console.error('Question generation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate questions',
+      message: error.message,
+      questions: [
+        "Can you explain what this code does in your own words?",
+        "What would happen if you modified one part of this code?"
+      ]
+    });
+  }
+});
+
 // Learning suggestions endpoint
 router.post('/learning-suggestions', async (req, res) => {
   try {
@@ -280,7 +572,7 @@ Format as JSON with:
 }`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-1106",
+      model: DEFAULT_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Analyze this code for learning opportunities:\n\n${codeContent}` }
