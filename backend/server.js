@@ -108,7 +108,18 @@ if (fs.existsSync(frontendDir)) {
     if (req.path.startsWith('/api/')) {
       return next();
     }
-    res.sendFile(path.join(frontendDir, 'index.html'));
+    const acceptHeader = req.headers.accept || '';
+    const wantsHtml = acceptHeader.includes('text/html');
+
+    if (!wantsHtml) {
+      return next();
+    }
+
+    res.sendFile(path.join(frontendDir, 'index.html'), err => {
+      if (err) {
+        next(err);
+      }
+    });
   });
 }
 
