@@ -1,0 +1,11 @@
+{
+  "name": "cocode",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "env": {
+    "VITE_API_URL": "https://your-backend-domain.example.com/api",
+    "VITE_AI_API_URL": "https://your-backend-domain.example.com/api"
+  }
+}
+
