@@ -11,13 +11,61 @@ const learningRoutes = require('./routes/learning');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const SERVICE_URL =
+  process.env.RENDER_EXTERNAL_URL ||
+  process.env.PUBLIC_BASE_URL ||
+  '';
+const PYTHON_SERVICE_URL = (process.env.PYTHON_SERVICE_URL || 'http://localhost:8000').replace(/\/$/, '');
+
+const rawOrigins =
+  process.env.CORS_ALLOW_ORIGINS ||
+  process.env.FRONTEND_URLS ||
+  process.env.FRONTEND_URL ||
+  '';
+const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173'];
+const allowedOrigins = [
+  ...new Set([
+    ...defaultOrigins,
+    ...rawOrigins
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(Boolean),
+  ]),
+];
+
+let originRegex = null;
+if (process.env.CORS_ALLOW_ORIGIN_REGEX) {
+  try {
+    originRegex = new RegExp(process.env.CORS_ALLOW_ORIGIN_REGEX);
+  } catch (error) {
+    console.warn(
+      '[Backend] Invalid CORS_ALLOW_ORIGIN_REGEX provided. Falling back to explicit origins.',
+      error.message,
+    );
+  }
+}
 
 // Security middleware
 app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    if (originRegex && originRegex.test(origin)) {
+      return callback(null, true);
+    }
+
+    console.warn('[Backend] Blocked CORS origin:', origin);
+    return callback(new Error('Not allowed by CORS'), false);
+  },
   credentials: true
 }));
 
@@ -66,8 +114,17 @@ app.use('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 DataAIFair Backend API running on port ${PORT}`);
-  console.log(`📡 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  if (SERVICE_URL) {
+    console.log(`🌐 External base URL: ${SERVICE_URL}`);
+    console.log(`📡 Health check: ${new URL('/health', SERVICE_URL).toString()}`);
+  } else {
+    console.log(`📡 Health check: http://localhost:${PORT}/health`);
+  }
+  console.log(`🔗 Allowed Frontend Origins: ${allowedOrigins.join(', ') || 'None specified'}`);
+  if (originRegex) {
+    console.log(`🔀 Allowing origins matching regex: ${originRegex}`);
+  }
+  console.log(`🧠 Python service URL: ${PYTHON_SERVICE_URL}`);
 });
 
 module.exports = app;
