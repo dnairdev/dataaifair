@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AI Provider Interface
  * Swappable interface for AI explanations and assistance

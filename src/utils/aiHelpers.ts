@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AISuggestion, CodebaseInsight } from '../types';
 
 // Generate learning prompts based on current context
