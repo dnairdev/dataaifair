@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Setting up DataAIFair IDE..."
+echo "🚀 Setting up Cocode IDE..."
 echo ""
 
 # Check if Node.js is installed

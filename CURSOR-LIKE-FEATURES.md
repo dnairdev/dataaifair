@@ -1,8 +1,8 @@
-# 🚀 DataAIFair IDE - Cursor-Like Features
+# 🚀 Cocode - Cursor-Like Features
 
 ## 🎯 **Enhanced AI-Powered Development with Learning Focus**
 
-Your DataAIFair IDE now includes powerful Cursor-like functionality that builds projects while teaching you about the codebase. Here's what's new:
+Your Cocode IDE now includes powerful Cursor-like functionality that builds projects while teaching you about the codebase. Here's what's new:
 
 ## 🛠️ **New AI Components**
 

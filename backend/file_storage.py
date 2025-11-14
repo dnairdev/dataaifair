@@ -1,5 +1,5 @@
 """
-File Storage System for DataAIFair IDE
+File Storage System for Cocode IDE
 Stores files that can be accessed by notebook code execution
 """
 import os

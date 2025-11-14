@@ -1,4 +1,4 @@
-# FastAPI Backend for DataAIFair Python Notebook
+# FastAPI Backend for Cocode Python Notebook
 
 This backend provides Python kernel execution for the Jupyter-style notebook IDE.
 
@@ -12,7 +12,7 @@ pip install -r requirements.txt
 
 2. **Install IPython kernel:**
 ```bash
-python -m ipykernel install --user --name dataaifair --display-name "Python (DataAIFair)"
+python -m ipykernel install --user --name cocode --display-name "Python (Cocode)"
 ```
 
 3. **Start the FastAPI server:**

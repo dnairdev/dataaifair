@@ -1,4 +1,4 @@
-# DataAIFair IDE
+# Cocode
 
 An AI-assisted IDE that promotes critical thinking and codebase familiarity while preventing skill atrophy.
 
@@ -11,7 +11,7 @@ Traditional AI coding assistants like ChatGPT and Cursor have two critical issue
 
 ## ✨ Our Solution
 
-DataAIFair IDE addresses these problems through:
+Cocode addresses these problems through:
 
 ### 🧠 Learning-Focused AI Assistance
 - **Progressive Disclosure**: AI provides hints and questions rather than complete solutions
@@ -61,7 +61,7 @@ DataAIFair IDE addresses these problems through:
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd dataaifair-ide
+   cd cocode
    ```
 
 2. **Install dependencies**
@@ -195,7 +195,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Documentation**: [Wiki](wiki-url)
 - **Issues**: [GitHub Issues](issues-url)
 - **Discussions**: [GitHub Discussions](discussions-url)
-- **Email**: support@dataaifair.com
+- **Email**: support@cocode.com
 
 ---
 

@@ -41,7 +41,7 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    service: 'DataAIFair Backend API'
+    service: 'Cocode Backend API'
   });
 });
 
@@ -65,7 +65,7 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 DataAIFair Backend API running on port ${PORT}`);
+  console.log(`🚀 Cocode Backend API running on port ${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/health`);
   console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
 });

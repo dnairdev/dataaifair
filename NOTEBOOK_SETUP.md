@@ -28,7 +28,7 @@ cd backend
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python -m ipykernel install --user --name dataaifair --display-name "Python (DataAIFair)"
+python -m ipykernel install --user --name cocode --display-name "Python (Cocode)"
 ```
 
 ### 3. Start Backend Server

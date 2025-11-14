@@ -1,7 +1,7 @@
 #!/bin/bash
 # Setup script for FastAPI Python Kernel Backend
 
-echo "Setting up DataAIFair Python Kernel Backend..."
+echo "Setting up Cocode Python Kernel Backend..."
 
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 # Install IPython kernel
 echo "Installing IPython kernel..."
-python -m ipykernel install --user --name dataaifair --display-name "Python (DataAIFair)"
+python -m ipykernel install --user --name cocode --display-name "Python (Cocode)"
 
 echo "Setup complete!"
 echo ""

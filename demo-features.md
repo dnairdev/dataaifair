@@ -1,4 +1,4 @@
-# 🎮 DataAIFair IDE - Demo Features
+# 🎮 Cocode - Demo Features
 
 ## 🚀 Getting Started
 1. Open your browser to `http://localhost:3000`

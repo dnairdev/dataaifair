@@ -1,7 +1,7 @@
 {
-  "name": "dataaifair-backend",
+  "name": "cocode-backend",
   "version": "1.0.0",
-  "description": "Backend API for DataAIFair IDE with ChatGPT integration",
+  "description": "Backend API for Cocode IDE with ChatGPT integration",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -23,6 +23,6 @@
     "jest": "^29.7.0"
   },
   "keywords": ["ai", "ide", "chatgpt", "learning", "education"],
-  "author": "DataAIFair Team",
+  "author": "Cocode Team",
   "license": "MIT"
 }

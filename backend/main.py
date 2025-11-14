@@ -18,7 +18,7 @@ from datetime import datetime
 from kernel_manager import KernelManager
 from file_storage import file_storage
 
-app = FastAPI(title="DataAIFair Python Kernel API")
+app = FastAPI(title="Cocode Python Kernel API")
 
 # CORS middleware
 app.add_middleware(
