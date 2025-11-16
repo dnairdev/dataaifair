@@ -3,9 +3,9 @@ set -e
 
 echo "🚀 Starting Cocode backends..."
 
-# Start Python backend in background
-echo "📦 Starting Python backend on port 8000..."
-uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/python.log 2>&1 &
+# Start Python backend in background on localhost ONLY (not publicly accessible)
+echo "📦 Starting Python backend on localhost:8000 (internal only)..."
+uvicorn main:app --host 127.0.0.1 --port 8000 > /tmp/python.log 2>&1 &
 PYTHON_PID=$!
 
 # Give Python backend time to start
@@ -28,9 +28,17 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT
 
+# CRITICAL: Ensure PORT is set for Node.js (Railway's public port)
+export PORT=${PORT:-3001}
+echo "📋 Railway PORT environment variable: ${PORT}"
+echo "📋 Node.js will listen on port: ${PORT}"
+
 # Start Node.js backend in foreground (Railway monitors this)
-# This must be the last command so Railway knows the container is running
-echo "📦 Starting Node.js backend on port ${PORT:-3001}..."
-echo "✅ Both backends are running. Node.js will run in foreground."
+# This MUST be the last command - Railway monitors this process
+echo "📦 Starting Node.js backend on port ${PORT}..."
+echo "✅ Both backends are running:"
+echo "   - Python: localhost:8000 (internal only)"
+echo "   - Node.js: 0.0.0.0:${PORT} (public - Railway routes here)"
+echo "🔗 All public traffic should go to Node.js on port ${PORT}"
 exec node server.js
 

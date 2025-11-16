@@ -230,28 +230,42 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Cocode Backend API running on port ${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  const actualPort = server.address().port;
+  console.log(`🚀 Cocode Backend API (Node.js) running on port ${actualPort}`);
+  console.log(`📊 Environment PORT: ${process.env.PORT || 'not set (using default 3001)'}`);
+  console.log(`📊 Actual listening port: ${actualPort}`);
+  
+  if (actualPort !== 3001) {
+    console.warn(`⚠️  WARNING: Node.js is listening on port ${actualPort}, not 3001!`);
+    console.warn(`⚠️  Railway MUST route public traffic to port ${actualPort} for this to work!`);
+  } else {
+    console.log(`✅ Node.js is correctly listening on port 3001`);
+  }
+  
   if (SERVICE_URL) {
     console.log(`🌐 External base URL: ${SERVICE_URL}`);
     console.log(`📡 Health check: ${new URL('/health', SERVICE_URL).toString()}`);
   } else {
-    console.log(`📡 Health check: http://localhost:${PORT}/health`);
+    console.log(`📡 Health check: http://localhost:${actualPort}/health`);
   }
   console.log(`🔗 Allowed Frontend Origins: ${allowedOrigins.join(', ') || 'None specified'}`);
   if (originRegex) {
     console.log(`🔀 Allowing origins matching regex: ${originRegex}`);
   }
   console.log(`🧠 Python service URL: ${PYTHON_SERVICE_URL}`);
-  console.log(`📋 Registered routes:`);
+  console.log(`📋 Registered Node.js routes:`);
   console.log(`   - GET  /health`);
-  console.log(`   - POST /api/ai/* (Node.js)`);
+  console.log(`   - GET  /api/test`);
+  console.log(`   - POST /api/ai/* (Node.js - AI chatbot routes)`);
   console.log(`   - POST /api/projects/* (Node.js)`);
   console.log(`   - POST /api/learning/* (Node.js)`);
-  console.log(`   - Proxy: /api/execute/* -> Python`);
-  console.log(`   - Proxy: /api/files/* -> Python`);
-  console.log(`   - Proxy: /api/variables/* -> Python`);
-  console.log(`   - Proxy: /api/sessions/* -> Python`);
+  console.log(`📋 Proxied to Python backend:`);
+  console.log(`   - POST /api/execute/* -> Python`);
+  console.log(`   - POST /api/files/* -> Python`);
+  console.log(`   - POST /api/variables/* -> Python`);
+  console.log(`   - POST /api/sessions/* -> Python`);
+  console.log(`\n✅ Node.js backend ready! Railway should route to port ${actualPort}`);
 });
 
 module.exports = app;
