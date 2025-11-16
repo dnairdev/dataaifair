@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 require('dotenv').config();
 
 const aiRoutes = require('./routes/ai');
@@ -12,11 +13,13 @@ const projectRoutes = require('./routes/projects');
 const learningRoutes = require('./routes/learning');
 
 const app = express();
+// Use Railway's PORT (defaults to 3001 for Node.js)
 const PORT = process.env.PORT || 3001;
 const SERVICE_URL =
   process.env.RENDER_EXTERNAL_URL ||
   process.env.PUBLIC_BASE_URL ||
   '';
+// Python backend runs on port 8000 internally
 const PYTHON_SERVICE_URL = (process.env.PYTHON_SERVICE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
 const rawOrigins =
@@ -95,10 +98,56 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+// API routes - Node.js handles these
 app.use('/api/ai', aiRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/learning', learningRoutes);
+
+// Proxy Python backend routes (execute, files, variables, sessions, health)
+// These routes are handled by the Python FastAPI backend
+const pythonRoutes = ['/api/execute', '/api/variables', '/api/sessions', '/api/files', '/health'];
+pythonRoutes.forEach(route => {
+  app.all(`${route}*`, (req, res) => {
+    proxyToPython(req, res);
+  });
+});
+
+// Helper function to proxy requests to Python backend
+function proxyToPython(req, res) {
+  const targetUrl = new URL(PYTHON_SERVICE_URL);
+  const fullPath = req.originalUrl || req.url;
+  
+  const options = {
+    hostname: targetUrl.hostname,
+    port: targetUrl.port || 8000,
+    path: fullPath,
+    method: req.method,
+    headers: {
+      'Content-Type': req.headers['content-type'] || 'application/json',
+    },
+  };
+
+  const proxyReq = http.request(options, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    proxyRes.pipe(res);
+  });
+
+  proxyReq.on('error', (err) => {
+    console.error('[Proxy] Error proxying to Python backend:', err.message);
+    if (!res.headersSent) {
+      res.status(502).json({ error: 'Python backend unavailable', message: err.message });
+    }
+  });
+
+  // Send request body if present
+  if (req.body && Object.keys(req.body).length > 0) {
+    const bodyData = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    proxyReq.write(bodyData);
+    proxyReq.end();
+  } else {
+    req.pipe(proxyReq);
+  }
+}
 
 // Frontend static assets
 const frontendDir = path.join(__dirname, '..', 'dist');
