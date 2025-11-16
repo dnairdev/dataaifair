@@ -89,13 +89,33 @@ app.use(express.urlencoded({ extended: true }));
 // Logging
 app.use(morgan('combined'));
 
+// Test endpoint to verify Node.js backend is running
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    service: 'Node.js Backend',
+    timestamp: new Date().toISOString(),
+    routes: {
+      ai: '/api/ai/*',
+      projects: '/api/projects/*',
+      learning: '/api/learning/*'
+    }
+  });
+});
+
 // API routes - Node.js handles these (MUST be before Python proxy)
 app.use('/api/ai', (req, res, next) => {
-  console.log(`[Node.js] Handling AI route: ${req.method} ${req.path}`);
+  console.log(`[Node.js] AI route: ${req.method} ${req.originalUrl || req.url}`);
   next();
 }, aiRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/learning', learningRoutes);
+app.use('/api/projects', (req, res, next) => {
+  console.log(`[Node.js] Projects route: ${req.method} ${req.originalUrl || req.url}`);
+  next();
+}, projectRoutes);
+app.use('/api/learning', (req, res, next) => {
+  console.log(`[Node.js] Learning route: ${req.method} ${req.originalUrl || req.url}`);
+  next();
+}, learningRoutes);
 
 // Health check endpoint for Node.js backend
 app.get('/health', (req, res) => {
@@ -185,9 +205,29 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Log unmatched routes before 404
+app.use('*', (req, res, next) => {
+  console.log(`[404] Unmatched route: ${req.method} ${req.originalUrl || req.url}`);
+  console.log(`[404] Request headers:`, req.headers);
+  next();
+});
+
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  res.status(404).json({ 
+    error: 'Route not found',
+    method: req.method,
+    path: req.originalUrl || req.url,
+    availableRoutes: [
+      'GET /health',
+      'GET /api/test',
+      'POST /api/ai/*',
+      'POST /api/projects/*',
+      'POST /api/learning/*',
+      'POST /api/execute/* (proxied to Python)',
+      'POST /api/files/* (proxied to Python)'
+    ]
+  });
 });
 
 app.listen(PORT, () => {
@@ -203,6 +243,15 @@ app.listen(PORT, () => {
     console.log(`🔀 Allowing origins matching regex: ${originRegex}`);
   }
   console.log(`🧠 Python service URL: ${PYTHON_SERVICE_URL}`);
+  console.log(`📋 Registered routes:`);
+  console.log(`   - GET  /health`);
+  console.log(`   - POST /api/ai/* (Node.js)`);
+  console.log(`   - POST /api/projects/* (Node.js)`);
+  console.log(`   - POST /api/learning/* (Node.js)`);
+  console.log(`   - Proxy: /api/execute/* -> Python`);
+  console.log(`   - Proxy: /api/files/* -> Python`);
+  console.log(`   - Proxy: /api/variables/* -> Python`);
+  console.log(`   - Proxy: /api/sessions/* -> Python`);
 });
 
 module.exports = app;
