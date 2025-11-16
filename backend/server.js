@@ -89,23 +89,27 @@ app.use(express.urlencoded({ extended: true }));
 // Logging
 app.use(morgan('combined'));
 
-// Health check endpoint
+// API routes - Node.js handles these (MUST be before Python proxy)
+app.use('/api/ai', (req, res, next) => {
+  console.log(`[Node.js] Handling AI route: ${req.method} ${req.path}`);
+  next();
+}, aiRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/learning', learningRoutes);
+
+// Health check endpoint for Node.js backend
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    service: 'Cocode Backend API'
+    service: 'Cocode Backend API (Node.js)',
+    pythonBackend: PYTHON_SERVICE_URL
   });
 });
 
-// API routes - Node.js handles these
-app.use('/api/ai', aiRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/learning', learningRoutes);
-
-// Proxy Python backend routes (execute, files, variables, sessions, health)
+// Proxy Python backend routes (execute, files, variables, sessions)
 // These routes are handled by the Python FastAPI backend
-const pythonRoutes = ['/api/execute', '/api/variables', '/api/sessions', '/api/files', '/health'];
+const pythonRoutes = ['/api/execute', '/api/variables', '/api/sessions', '/api/files'];
 pythonRoutes.forEach(route => {
   app.all(`${route}*`, (req, res) => {
     proxyToPython(req, res);
