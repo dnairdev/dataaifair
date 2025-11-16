@@ -1,5 +1,18 @@
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api';
-const AI_API_BASE_URL = (import.meta as any).env?.VITE_AI_API_URL || 'http://localhost:3001/api';
+// Both backends are on the same Railway URL
+// Extract base URL from VITE_API_URL or use VITE_API_BASE_URL, fallback to localhost
+const getBaseUrl = () => {
+  const env = (import.meta as any).env;
+  if (env?.VITE_API_BASE_URL) return env.VITE_API_BASE_URL;
+  if (env?.VITE_API_URL) {
+    const url = env.VITE_API_URL;
+    return url.replace('/api', '');
+  }
+  return 'http://localhost:8000';
+};
+
+const BASE_URL = getBaseUrl();
+const API_BASE_URL = `${BASE_URL}/api`;
+const AI_API_BASE_URL = (import.meta as any).env?.VITE_AI_API_URL || `${BASE_URL}/api`;
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

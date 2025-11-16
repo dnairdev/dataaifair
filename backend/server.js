@@ -138,12 +138,7 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-<<<<<<< HEAD
   console.log(`🚀 Cocode Backend API running on port ${PORT}`);
-  console.log(`📡 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-=======
-  console.log(`🚀 DataAIFair Backend API running on port ${PORT}`);
   if (SERVICE_URL) {
     console.log(`🌐 External base URL: ${SERVICE_URL}`);
     console.log(`📡 Health check: ${new URL('/health', SERVICE_URL).toString()}`);
@@ -155,7 +150,6 @@ app.listen(PORT, () => {
     console.log(`🔀 Allowing origins matching regex: ${originRegex}`);
   }
   console.log(`🧠 Python service URL: ${PYTHON_SERVICE_URL}`);
->>>>>>> 8652cfc08528ce94b26947053e3006f1913af23c
 });
 
 module.exports = app;
