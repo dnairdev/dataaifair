@@ -20,10 +20,15 @@ from file_storage import file_storage
 
 app = FastAPI(title="Cocode Python Kernel API")
 
-# CORS middleware
+# CORS middleware - read from environment variable
+frontend_origins = os.getenv(
+    "FRONTEND_URLS",
+    "http://localhost:5173,http://localhost:3000,https://cocodeai.vercel.app",
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[origin.strip() for origin in frontend_origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
