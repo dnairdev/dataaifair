@@ -50,6 +50,15 @@ if (process.env.CORS_ALLOW_ORIGIN_REGEX) {
   }
 }
 
+// Log ALL incoming requests first (before any other middleware)
+app.use((req, res, next) => {
+  console.log(`[Request] ${req.method} ${req.originalUrl || req.url} from ${req.headers.origin || 'no origin'}`);
+  if (req.method === 'OPTIONS') {
+    console.log(`[Request] OPTIONS preflight detected for: ${req.originalUrl || req.url}`);
+  }
+  next();
+});
+
 // Security middleware - configure to not interfere with CORS
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -57,60 +66,41 @@ app.use(helmet({
 }));
 
 // CORS configuration - MUST be before rate limiting
+// The cors package automatically handles OPTIONS preflight requests
 app.use(cors({
   origin: (origin, callback) => {
     console.log(`[CORS] Request from origin: ${origin || 'no origin'}`);
+    console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
     
+    // Allow requests with no origin (like mobile apps, Postman, or same-origin requests)
     if (!origin) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      console.log('[CORS] Allowing request with no origin');
+      console.log('[CORS] ✅ Allowing request with no origin');
       return callback(null, true);
     }
 
+    // Check explicit allowed origins
     if (allowedOrigins.includes(origin)) {
-      console.log(`[CORS] ✅ Allowing origin: ${origin}`);
+      console.log(`[CORS] ✅ Allowing origin (explicit match): ${origin}`);
       return callback(null, true);
     }
 
+    // Check regex pattern
     if (originRegex && originRegex.test(origin)) {
       console.log(`[CORS] ✅ Allowing origin (regex match): ${origin}`);
       return callback(null, true);
     }
 
     console.warn(`[CORS] ❌ Blocked CORS origin: ${origin}`);
-    console.warn(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+    console.warn(`[CORS] Allowed origins list: ${JSON.stringify(allowedOrigins)}`);
     return callback(new Error(`Not allowed by CORS: ${origin}`), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
-  maxAge: 86400 // 24 hours
+  preflightContinue: false, // Let cors handle preflight
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11) choke on 204
 }));
-
-// Handle preflight OPTIONS requests explicitly
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  console.log(`[CORS] Handling OPTIONS preflight for: ${req.originalUrl || req.url} from origin: ${origin}`);
-  
-  // Check if origin is allowed
-  const isAllowed = !origin || 
-                    allowedOrigins.includes(origin) || 
-                    (originRegex && originRegex.test(origin));
-  
-  if (isAllowed) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-    console.log(`[CORS] ✅ OPTIONS preflight allowed for origin: ${origin}`);
-    res.sendStatus(200);
-  } else {
-    console.warn(`[CORS] ❌ OPTIONS preflight blocked for origin: ${origin}`);
-    res.sendStatus(403);
-  }
-});
 
 // Rate limiting - skip OPTIONS requests
 const limiter = rateLimit({
