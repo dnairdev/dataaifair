@@ -50,10 +50,31 @@ if (process.env.CORS_ALLOW_ORIGIN_REGEX) {
   }
 }
 
+// CORS helper function
+const setCorsHeaders = (req, res) => {
+  const origin = req.headers.origin;
+  
+  if (!origin) {
+    return false; // No origin, no CORS headers needed
+  }
+  
+  const isAllowed = allowedOrigins.includes(origin) || 
+                    (originRegex && originRegex.test(origin));
+  
+  if (isAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    return true;
+  }
+  
+  return false;
+};
+
 // Handle OPTIONS preflight requests FIRST (before any other middleware)
 app.options('*', (req, res) => {
   const origin = req.headers.origin;
   console.log(`[CORS-PREFLIGHT] OPTIONS request for: ${req.originalUrl || req.url} from origin: ${origin}`);
+  console.log(`[CORS-PREFLIGHT] Allowed origins: ${allowedOrigins.join(', ')}`);
   
   // Check if origin is in allowed list
   const isAllowed = !origin || 
@@ -70,11 +91,14 @@ app.options('*', (req, res) => {
     return res.status(200).end();
   } else if (!origin) {
     // No origin header (same-origin or tool like Postman)
+    console.log(`[CORS-PREFLIGHT] No origin header, allowing`);
     res.status(200).end();
     return;
   } else {
     console.warn(`[CORS-PREFLIGHT] ❌ Blocked OPTIONS for origin: ${origin}`);
     console.warn(`[CORS-PREFLIGHT] Allowed origins: ${allowedOrigins.join(', ')}`);
+    // Still send CORS headers but with error status
+    res.setHeader('Access-Control-Allow-Origin', origin); // Some browsers need this even on error
     res.status(403).end();
     return;
   }
@@ -82,7 +106,19 @@ app.options('*', (req, res) => {
 
 // Log ALL incoming requests (after OPTIONS handler)
 app.use((req, res, next) => {
-  console.log(`[Request] ${req.method} ${req.originalUrl || req.url} from ${req.headers.origin || 'no origin'}`);
+  const origin = req.headers.origin;
+  console.log(`[Request] ${req.method} ${req.originalUrl || req.url} from origin: ${origin || 'no origin'}`);
+  
+  // Add CORS headers to all responses as fallback
+  if (origin) {
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      (originRegex && originRegex.test(origin));
+    if (isAllowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+  }
+  
   next();
 });
 
@@ -218,8 +254,11 @@ pythonRoutes.forEach(route => {
 
 // Helper function to proxy requests to Python backend
 function proxyToPython(req, res) {
+  const origin = req.headers.origin;
   const targetUrl = new URL(PYTHON_SERVICE_URL);
   const fullPath = req.originalUrl || req.url;
+  
+  console.log(`[Proxy] Proxying ${req.method} ${fullPath} to Python backend`);
   
   const options = {
     hostname: targetUrl.hostname,
@@ -232,13 +271,35 @@ function proxyToPython(req, res) {
   };
 
   const proxyReq = http.request(options, (proxyRes) => {
-    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    // Preserve CORS headers from our middleware
+    const headers = { ...proxyRes.headers };
+    
+    // Add CORS headers if origin is allowed
+    if (origin) {
+      const isAllowed = allowedOrigins.includes(origin) || 
+                        (originRegex && originRegex.test(origin));
+      if (isAllowed) {
+        headers['Access-Control-Allow-Origin'] = origin;
+        headers['Access-Control-Allow-Credentials'] = 'true';
+      }
+    }
+    
+    res.writeHead(proxyRes.statusCode, headers);
     proxyRes.pipe(res);
   });
 
   proxyReq.on('error', (err) => {
     console.error('[Proxy] Error proxying to Python backend:', err.message);
     if (!res.headersSent) {
+      // Add CORS headers to error response
+      if (origin) {
+        const isAllowed = allowedOrigins.includes(origin) || 
+                          (originRegex && originRegex.test(origin));
+        if (isAllowed) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+          res.setHeader('Access-Control-Allow-Credentials', 'true');
+        }
+      }
       res.status(502).json({ error: 'Python backend unavailable', message: err.message });
     }
   });
