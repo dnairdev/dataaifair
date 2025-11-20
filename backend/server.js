@@ -70,13 +70,52 @@ const setCorsHeaders = (req, res) => {
   return false;
 };
 
-// Handle OPTIONS preflight requests FIRST (before any other middleware)
+// CRITICAL: Handle OPTIONS preflight requests FIRST (before ANY other middleware)
+// This MUST be the first route handler to catch all OPTIONS requests
+app.use((req, res, next) => {
+  // Intercept ALL OPTIONS requests immediately
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.origin;
+    console.log(`[CORS-PREFLIGHT] ⚡ OPTIONS intercepted for: ${req.originalUrl || req.url}`);
+    console.log(`[CORS-PREFLIGHT] Origin: ${origin || 'no origin'}`);
+    console.log(`[CORS-PREFLIGHT] Allowed origins: ${allowedOrigins.join(', ')}`);
+    console.log(`[CORS-PREFLIGHT] Request headers:`, JSON.stringify(req.headers, null, 2));
+    
+    // Check if origin is in allowed list
+    const isAllowed = !origin || 
+                      allowedOrigins.includes(origin) || 
+                      (originRegex && originRegex.test(origin));
+    
+    if (isAllowed && origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      console.log(`[CORS-PREFLIGHT] ✅ Sending CORS headers for origin: ${origin}`);
+      return res.status(200).end();
+    } else if (!origin) {
+      // No origin header (same-origin or tool like Postman)
+      console.log(`[CORS-PREFLIGHT] No origin header, allowing`);
+      return res.status(200).end();
+    } else {
+      console.warn(`[CORS-PREFLIGHT] ❌ Origin not allowed: ${origin}`);
+      console.warn(`[CORS-PREFLIGHT] Allowed origins: ${allowedOrigins.join(', ')}`);
+      // Still send CORS headers but with error status (some browsers need this)
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+      return res.status(403).end();
+    }
+  }
+  next();
+});
+
+// Also register explicit OPTIONS handler as backup
 app.options('*', (req, res) => {
   const origin = req.headers.origin;
-  console.log(`[CORS-PREFLIGHT] OPTIONS request for: ${req.originalUrl || req.url} from origin: ${origin}`);
-  console.log(`[CORS-PREFLIGHT] Allowed origins: ${allowedOrigins.join(', ')}`);
+  console.log(`[CORS-PREFLIGHT-BACKUP] OPTIONS via app.options('*') for: ${req.originalUrl || req.url}`);
   
-  // Check if origin is in allowed list
   const isAllowed = !origin || 
                     allowedOrigins.includes(origin) || 
                     (originRegex && originRegex.test(origin));
@@ -87,21 +126,9 @@ app.options('*', (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Max-Age', '86400');
-    console.log(`[CORS-PREFLIGHT] ✅ Allowed OPTIONS for origin: ${origin}`);
     return res.status(200).end();
-  } else if (!origin) {
-    // No origin header (same-origin or tool like Postman)
-    console.log(`[CORS-PREFLIGHT] No origin header, allowing`);
-    res.status(200).end();
-    return;
-  } else {
-    console.warn(`[CORS-PREFLIGHT] ❌ Blocked OPTIONS for origin: ${origin}`);
-    console.warn(`[CORS-PREFLIGHT] Allowed origins: ${allowedOrigins.join(', ')}`);
-    // Still send CORS headers but with error status
-    res.setHeader('Access-Control-Allow-Origin', origin); // Some browsers need this even on error
-    res.status(403).end();
-    return;
   }
+  res.status(200).end();
 });
 
 // Log ALL incoming requests (after OPTIONS handler)
@@ -204,6 +231,28 @@ app.get('/api/test', (req, res) => {
 // Simple backend identifier endpoint
 app.get('/backend-type', (req, res) => {
   res.json({ backend: 'Node.js', port: PORT, timestamp: new Date().toISOString() });
+});
+
+// CORS test endpoint - explicitly sets CORS headers
+app.get('/api/cors-test', (req, res) => {
+  const origin = req.headers.origin;
+  console.log(`[CORS-TEST] GET /api/cors-test from origin: ${origin}`);
+  
+  if (origin) {
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      (originRegex && originRegex.test(origin));
+    if (isAllowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+  }
+  
+  res.json({ 
+    message: 'CORS test endpoint',
+    origin: origin,
+    allowedOrigins: allowedOrigins,
+    corsHeadersSet: !!res.getHeader('Access-Control-Allow-Origin')
+  });
 });
 
 // Diagnostic endpoint to check backend status
