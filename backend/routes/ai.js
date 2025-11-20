@@ -5,9 +5,14 @@ const { v4: uuidv4 } = require('uuid');
 const http = require('http');
 
 // Initialize OpenAI client
-const openai = new OpenAI({
+if (!process.env.OPENAI_API_KEY) {
+  console.error('❌ OPENAI_API_KEY is not set in environment variables!');
+  console.error('❌ AI features will not work without an OpenAI API key.');
+}
+
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+}) : null;
 
 // Use GPT-4o (latest model) or fallback to GPT-4 Turbo
 // You can override this with OPENAI_MODEL environment variable
@@ -16,6 +21,13 @@ const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 // Chat endpoint for AI Assistant
 router.post('/chat', async (req, res) => {
   try {
+    if (!openai) {
+      return res.status(500).json({ 
+        error: 'OpenAI API key not configured',
+        message: 'OPENAI_API_KEY environment variable is not set. Please set it in Railway variables.'
+      });
+    }
+
     const { message, context, userLevel = 'intermediate' } = req.body;
 
     if (!message) {
@@ -146,6 +158,13 @@ async function getAvailableFiles() {
 // Code generation endpoint
 router.post('/generate-code', async (req, res) => {
   try {
+    if (!openai) {
+      return res.status(500).json({ 
+        error: 'OpenAI API key not configured',
+        message: 'OPENAI_API_KEY environment variable is not set. Please set it in Railway variables.'
+      });
+    }
+
     const { description, type, language, complexity, context } = req.body;
 
     if (!description) {

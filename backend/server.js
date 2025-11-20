@@ -94,12 +94,29 @@ app.get('/api/test', (req, res) => {
   res.json({ 
     status: 'OK', 
     service: 'Node.js Backend',
+    port: PORT,
     timestamp: new Date().toISOString(),
+    pythonBackend: PYTHON_SERVICE_URL,
+    openaiConfigured: !!process.env.OPENAI_API_KEY,
     routes: {
       ai: '/api/ai/*',
       projects: '/api/projects/*',
       learning: '/api/learning/*'
-    }
+    },
+    message: 'If you see this, Railway is correctly routing to Node.js backend!'
+  });
+});
+
+// Diagnostic endpoint to check backend status
+app.get('/api/diagnostic', (req, res) => {
+  res.json({
+    backend: 'Node.js',
+    port: PORT,
+    pythonBackendUrl: PYTHON_SERVICE_URL,
+    openaiKeySet: !!process.env.OPENAI_API_KEY,
+    openaiKeyLength: process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0,
+    corsOrigins: allowedOrigins,
+    timestamp: new Date().toISOString()
   });
 });
 
