@@ -50,12 +50,39 @@ if (process.env.CORS_ALLOW_ORIGIN_REGEX) {
   }
 }
 
-// Log ALL incoming requests first (before any other middleware)
+// Handle OPTIONS preflight requests FIRST (before any other middleware)
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  console.log(`[CORS-PREFLIGHT] OPTIONS request for: ${req.originalUrl || req.url} from origin: ${origin}`);
+  
+  // Check if origin is in allowed list
+  const isAllowed = !origin || 
+                    allowedOrigins.includes(origin) || 
+                    (originRegex && originRegex.test(origin));
+  
+  if (isAllowed && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    console.log(`[CORS-PREFLIGHT] ✅ Allowed OPTIONS for origin: ${origin}`);
+    return res.status(200).end();
+  } else if (!origin) {
+    // No origin header (same-origin or tool like Postman)
+    res.status(200).end();
+    return;
+  } else {
+    console.warn(`[CORS-PREFLIGHT] ❌ Blocked OPTIONS for origin: ${origin}`);
+    console.warn(`[CORS-PREFLIGHT] Allowed origins: ${allowedOrigins.join(', ')}`);
+    res.status(403).end();
+    return;
+  }
+});
+
+// Log ALL incoming requests (after OPTIONS handler)
 app.use((req, res, next) => {
   console.log(`[Request] ${req.method} ${req.originalUrl || req.url} from ${req.headers.origin || 'no origin'}`);
-  if (req.method === 'OPTIONS') {
-    console.log(`[Request] OPTIONS preflight detected for: ${req.originalUrl || req.url}`);
-  }
   next();
 });
 
@@ -120,6 +147,7 @@ app.use(morgan('combined'));
 
 // Test endpoint to verify Node.js backend is running
 app.get('/api/test', (req, res) => {
+  console.log(`[Test] GET /api/test - Node.js backend responding`);
   res.json({ 
     status: 'OK', 
     service: 'Node.js Backend',
@@ -127,6 +155,7 @@ app.get('/api/test', (req, res) => {
     timestamp: new Date().toISOString(),
     pythonBackend: PYTHON_SERVICE_URL,
     openaiConfigured: !!process.env.OPENAI_API_KEY,
+    corsOrigins: allowedOrigins,
     routes: {
       ai: '/api/ai/*',
       projects: '/api/projects/*',
@@ -134,6 +163,11 @@ app.get('/api/test', (req, res) => {
     },
     message: 'If you see this, Railway is correctly routing to Node.js backend!'
   });
+});
+
+// Simple backend identifier endpoint
+app.get('/backend-type', (req, res) => {
+  res.json({ backend: 'Node.js', port: PORT, timestamp: new Date().toISOString() });
 });
 
 // Diagnostic endpoint to check backend status
