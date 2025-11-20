@@ -282,13 +282,29 @@ app.use('/api/learning', (req, res, next) => {
   next();
 }, learningRoutes);
 
-// Health check endpoint for Node.js backend
+// Health check endpoint for Node.js backend (Railway uses this)
+// MUST handle CORS in case Railway's health check includes Origin header
 app.get('/health', (req, res) => {
+  const origin = req.headers.origin;
+  console.log(`[Health] GET /health from origin: ${origin || 'no origin'}`);
+  
+  // Add CORS headers if origin is present
+  if (origin) {
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      (originRegex && originRegex.test(origin));
+    if (isAllowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+  }
+  
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
     service: 'Cocode Backend API (Node.js)',
-    pythonBackend: PYTHON_SERVICE_URL
+    port: PORT,
+    pythonBackend: PYTHON_SERVICE_URL,
+    backend: 'Node.js'
   });
 });
 
