@@ -23,9 +23,9 @@ COPY . .
 # Make startup script executable
 RUN chmod +x /app/start.sh
 
-# Expose both ports (Railway will use PORT env var, default to 3001 for Node.js)
-EXPOSE 3001 8000
-ENV PORT=3001
+# Expose ports (Railway will set PORT dynamically, Python uses 8000 internally)
+EXPOSE 8000
+# Don't set PORT here - let Railway set it dynamically
 
 # Start both backends
 CMD ["/app/start.sh"]

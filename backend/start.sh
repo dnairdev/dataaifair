@@ -28,9 +28,10 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT
 
-# CRITICAL: Ensure PORT is set for Node.js (Railway's public port)
+# CRITICAL: Use Railway's PORT (Railway sets this automatically)
+# If PORT is not set by Railway, default to 3001 for local development
 export PORT=${PORT:-3001}
-echo "📋 Railway PORT environment variable: ${PORT}"
+echo "📋 Railway PORT environment variable: ${PORT:-'not set (using default 3001)'}"
 echo "📋 Node.js will listen on port: ${PORT}"
 
 # Start Node.js backend in foreground (Railway monitors this)
