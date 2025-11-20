@@ -50,35 +50,74 @@ if (process.env.CORS_ALLOW_ORIGIN_REGEX) {
   }
 }
 
-// Security middleware
-app.use(helmet());
+// Security middleware - configure to not interfere with CORS
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}));
 
-// CORS configuration
+// CORS configuration - MUST be before rate limiting
 app.use(cors({
   origin: (origin, callback) => {
+    console.log(`[CORS] Request from origin: ${origin || 'no origin'}`);
+    
     if (!origin) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      console.log('[CORS] Allowing request with no origin');
       return callback(null, true);
     }
 
     if (allowedOrigins.includes(origin)) {
+      console.log(`[CORS] ✅ Allowing origin: ${origin}`);
       return callback(null, true);
     }
 
     if (originRegex && originRegex.test(origin)) {
+      console.log(`[CORS] ✅ Allowing origin (regex match): ${origin}`);
       return callback(null, true);
     }
 
-    console.warn('[Backend] Blocked CORS origin:', origin);
-    return callback(new Error('Not allowed by CORS'), false);
+    console.warn(`[CORS] ❌ Blocked CORS origin: ${origin}`);
+    console.warn(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+    return callback(new Error(`Not allowed by CORS: ${origin}`), false);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 86400 // 24 hours
 }));
 
-// Rate limiting
+// Handle preflight OPTIONS requests explicitly
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  console.log(`[CORS] Handling OPTIONS preflight for: ${req.originalUrl || req.url} from origin: ${origin}`);
+  
+  // Check if origin is allowed
+  const isAllowed = !origin || 
+                    allowedOrigins.includes(origin) || 
+                    (originRegex && originRegex.test(origin));
+  
+  if (isAllowed) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+    console.log(`[CORS] ✅ OPTIONS preflight allowed for origin: ${origin}`);
+    res.sendStatus(200);
+  } else {
+    console.warn(`[CORS] ❌ OPTIONS preflight blocked for origin: ${origin}`);
+    res.sendStatus(403);
+  }
+});
+
+// Rate limiting - skip OPTIONS requests
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  skip: (req) => req.method === 'OPTIONS' // Skip rate limiting for OPTIONS requests
 });
 app.use('/api/', limiter);
 
