@@ -27,7 +27,11 @@ const rawOrigins =
   process.env.FRONTEND_URLS ||
   process.env.FRONTEND_URL ||
   '';
-const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173'];
+const defaultOrigins = [
+  'http://localhost:3000', 
+  'http://localhost:5173',
+  'https://cocodeai.vercel.app'  // Frontend production URL
+];
 const allowedOrigins = [
   ...new Set([
     ...defaultOrigins,
